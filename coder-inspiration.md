@@ -1236,6 +1236,13 @@ console.log(Object.prototype.toString.call(new Person));//[object Object]
 
 - 2019.02.18  **Servlet**
 
-  
+  ##### MIME 
+
+  > MIME在浏览器和we服务器通信的过程中约定需要解释的内容类型， 在HTTP请求头中表明，Multipirpose Internet Mail Extension （多用途Internet邮件扩展），比如普通ASCII文本的MIME类型是text/plain，web页面源代码的MIME类型是text/html，此时浏览器应当将内容解释为html源代码。
+
+  ##### Servlet
+
+  > 早期服务器处理web请求需要创建单独进程还需要为每个单独的客户端请求打开和关闭数据库连接，Servlet在web服务器的地址空间内执行请求处理，并且使用Java因而平台独立。Tomcat是Servlet应用服务器，管理Servlet的创建销毁。
+  > Servlet的生命周期init(),service(),destroy()分别是创建、处理请求和响应、销毁servlet。  
 
 ***
