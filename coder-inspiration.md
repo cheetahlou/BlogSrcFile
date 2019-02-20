@@ -1246,3 +1246,14 @@ console.log(Object.prototype.toString.call(new Person));//[object Object]
   > Servlet的生命周期init(),service(),destroy()分别是创建、处理请求和响应、销毁servlet。  
 
 ***
+
+- 2019.02.20 **Git 查看某个用户名提交代码行数**
+
+```bash
+git log --author="username" --pretty=tformat: --numstat | awk '{ add += $1; subs += $2; loc += $1 - $2 } END { printf "added lines: %s, removed lines: %s, total lines: %s\n", add, subs, loc }'
+
+```
+
+
+
+***
