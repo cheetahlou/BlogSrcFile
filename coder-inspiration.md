@@ -1258,3 +1258,16 @@ git log --author="username" --pretty=tformat: --numstat | awk '{ add += $1; subs
 
 ***
 
+- 2019.02.22 **IDEA 报错: Error:java: Compilation failed: internal java compiler error**
+
+``` java
+Information:java: javacTask: 源发行版 8 需要目标发行版 1.8
+Information:java: Errors occurred while compiling module 'springboot-demo'
+Information:javac 1.8.0_162 was used to compile java sources
+Information:2019/2/22 16:01 - Build completed with 1 error and 0 warnings in 5 s 490 ms
+Error:java: Compilation failed: internal java compiler error
+```
+
+找到IDEA的设置中的java compiler 中右边的Target Bytecode Version 改到提示版本以上,我是1.5改成8
+
+***
