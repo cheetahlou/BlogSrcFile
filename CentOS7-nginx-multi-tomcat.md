@@ -1,7 +1,8 @@
 ---
 title: CentOS7-nginx-multi-tomcat
 date: 2019-02-01 23:37:00
-tags: linux
+tags: 
+- linux
 ---
 
 
