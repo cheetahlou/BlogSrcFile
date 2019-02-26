@@ -1271,3 +1271,9 @@ Error:java: Compilation failed: internal java compiler error
 找到IDEA的设置中的java compiler 中右边的Target Bytecode Version 改到提示版本以上,我是1.5改成8
 
 ***
+- 2019.02.23 **JDK中的设计模式** 
+
+Integer.valueOf的设计模式，享元模式。BufferReader和BufferWriter的设计模式 ，装饰模式
+
+> 扩展阅读： [JDK里的设计模式](https://coolshell.cn/articles/3320.html)
+***
