@@ -1283,7 +1283,7 @@ Integer.valueOf的设计模式，享元模式。BufferReader和BufferWriter的�
 
 虽然Java拥有垃圾回收机制，但同样会出现内存泄露问题，比如下面提到的几种情况：
 
-(1). 诸如 HashMap、Vector 等集合类的静态使用最容易出现内存泄露，因为这些静态变量的生命周期和应用程序一致，所有的对象Object也不能被释放，因为他们也将一直被Vector等应用着。
+(1). 诸如 HashMap、Vector 等集合类的静态使用最容易出现内存泄露，因为这些静态变量的生命周期和应用程序一致，所有的对象Object也不能被释放，因为他们也将一直被Vector等引用着。
 
 ```java
 private static Vector v = new Vector(); 
