@@ -1276,4 +1276,33 @@ Error:java: Compilation failed: internal java compiler error
 Integer.valueOf的设计模式，享元模式。BufferReader和BufferWriter的设计模式 ，装饰模式
 
 > 扩展阅读： [JDK里的设计模式](https://coolshell.cn/articles/3320.html)
+
 ***
+
+- 2019.02.28 **JVM不自动回收垃圾的情况导致内存泄露**
+
+虽然Java拥有垃圾回收机制，但同样会出现内存泄露问题，比如下面提到的几种情况：
+
+(1). 诸如 HashMap、Vector 等集合类的静态使用最容易出现内存泄露，因为这些静态变量的生命周期和应用程序一致，所有的对象Object也不能被释放，因为他们也将一直被Vector等应用着。
+
+```java
+private static Vector v = new Vector(); 
+
+public void test(Vector v){
+
+    for (int i = 1; i<100; i++) { 
+        Object o = new Object(); 
+        v.add(o); 
+        o = null; 
+    }
+}
+```
+
+　　在这个例子中，虚拟机栈中保存者 Vector 对象的引用 v 和 Object 对象的引用 o 。在 for 循环中，我们不断的生成新的对象，然后将其添加到 Vector 对象中，之后将 o 引用置空。问题是虽然我们将 o 引用置空，但当发生垃圾回收时，我们创建的 Object 对象也不能够被回收。因为垃圾回收在跟踪代码栈中的引用时会发现 v 引用，而继续往下跟踪就会发现 v 引用指向的内存空间中又存在指向 Object 对象的引用。也就是说，尽管o 引用已经被置空，但是 Object 对象仍然存在其他的引用，是可以被访问到的，所以 GC 无法将其释放掉。如果在此循环之后， Object 对象对程序已经没有任何作用，那么我们就认为此 Java 程序发生了内存泄漏。
+
+　　(2). 各种资源连接包括数据库连接、网络连接、IO连接等没有显式调用close关闭，不被GC回收导致内存泄露。
+
+　　(3). 监听器的使用，在释放对象的同时没有相应删除监听器的时候也可能导致内存泄露。
+
+***
+
