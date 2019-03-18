@@ -1365,3 +1365,22 @@ Integer.MAX_VALUE如下
 > 反码通常用于原码和补码之间的过渡。负数的反码+1=该数值的补码
 
 ***
+
+- 2019.03.18  **Bootstrap3.X modal模态框关闭后页面左移**
+
+  页面加入样式 。 `overflow-y`在没有滚动条的时候可以不加.
+
+```css
+<style>
+    .modal-open{
+        overflow-y: scroll;
+    }
+    body{
+        padding-right:0px!important;
+    }
+</style>
+```
+
+
+
+***
