@@ -793,8 +793,13 @@ Character、Byte、Short、Integer、Long等包装类型的equals方法，比较
 - 2018.7.17 **Linux日志查询**
 
 1. 按关键字查找日志行号：`cat -n test.log | grep 关键字`
+
 2. 找到行号后打印前后某几行日志：用tail和head 打印，`tail -n +行号 文件名 | head -n 20` 或者 用sed `sed -n '23882,24182p' test.log`
-3. sed打印某段时间内的日志：`sed -n '/2018-08-01 14:52:00/,/2018-08-01 14:53:00/p' test.log`
+
+3. sed打印某段时间内的日志：`sed -n '/2018-08-01 14:52:00/,/2018-08-01 14:53:00/p' test.log`    
+
+   某段时间内包含关键字翻页查 `sed -n '/2019-04-08 16:59:15/,/2019-04-08 17:30/p' catalina.out |grep exec-7 | more`
+
 4. less打印某关键词所在位置日志，可以按N和n分别查找前后一个关键词的日志，并且高亮该关键词，`less -N +?keyword  test.log` 或者`less -N +/keyword  test.log`，"?" 和"/"的区别是 按n和N不同方向匹配文本。用more不会高亮该关键词。
 
 > less ?keyword　　向上查找
