@@ -1491,3 +1491,12 @@ IDEA 使用技巧之一, 找到对应代码块的开始/结束处
         },
 ```
 
+- **2019-04-17**  **boostrap-select ajax refresh render**
+
+Boostrap-select  用ajax异步加载数据后, 需用其提供的api中的refresh和render方法重新刷新和渲染数据
+
+``` js
+ $('#id').selectpicker('refresh');
+ $('#id').selectpicker('render');
+```
+
