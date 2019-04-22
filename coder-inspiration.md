@@ -1491,7 +1491,7 @@ IDEA 使用技巧之一, 找到对应代码块的开始/结束处
         },
 ```
 
-- **2019-04-17**  **boostrap-select ajax refresh render**
+- 2019-04-17  **boostrap-select ajax refresh render**
 
 Boostrap-select  用ajax异步加载数据后, 需用其提供的api中的refresh和render方法重新刷新和渲染数据
 
@@ -1500,3 +1500,21 @@ Boostrap-select  用ajax异步加载数据后, 需用其提供的api中的refres
  $('#id').selectpicker('render');
 ```
 
+- 2019-04-22 **JS decodeURIComponent(encodedURI)**
+
+**encodedURI**:编码后的部分 URI
+
+**作用**: 将已编码 URI 中所有能识别的转义序列转换成原字符
+
+**举栗**: 包含中文的, 包含西里尔字母的等等
+
+解码一个西里尔字母的URL
+
+```js
+decodeURIComponent("JavaScript_%D1%88%D0%B5%D0%BB%D0%BB%D1%8B");
+// "JavaScript_шеллы"
+```
+
+
+
+java.util.NoSuchElementException: No value present
