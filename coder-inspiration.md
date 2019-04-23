@@ -1491,6 +1491,8 @@ IDEA 使用技巧之一, 找到对应代码块的开始/结束处
         },
 ```
 
+***
+
 - 2019-04-17  **boostrap-select ajax refresh render**
 
 Boostrap-select  用ajax异步加载数据后, 需用其提供的api中的refresh和render方法重新刷新和渲染数据
@@ -1499,6 +1501,8 @@ Boostrap-select  用ajax异步加载数据后, 需用其提供的api中的refres
  $('#id').selectpicker('refresh');
  $('#id').selectpicker('render');
 ```
+
+***
 
 - 2019-04-22 **JS decodeURIComponent(encodedURI)**
 
@@ -1515,6 +1519,31 @@ decodeURIComponent("JavaScript_%D1%88%D0%B5%D0%BB%D0%BB%D1%8B");
 // "JavaScript_шеллы"
 ```
 
+***
+
+- 2019-04-23 **Spring-boot 起步依赖**
+
+起步依赖 spring-boot-starter-xx, 以spring-boot-starter-打头
+
+****
 
 
-java.util.NoSuchElementException: No value present
+
+> 当Optional的结果为空时调用get方法会抛异常`java.util.NoSuchElementException: No value present`,所以建议用isPresent()方法先判断。JAVA推荐使用Optional来消除空指针异常
+
+``` java
+@Test
+public void reduceTest() {
+    Integer testInt[]={};
+    Optional<Integer> sumAll = Stream.of(testInt).reduce(Integer::sum);
+    System.out.println(sumAll);// Optional.empty
+    if(sumAll.isPresent()){
+        System.out.println(sumAll.get());
+    }else{
+        System.out.println(sumAll.empty());// Optional.empty
+    }
+}
+```
+
+
+
