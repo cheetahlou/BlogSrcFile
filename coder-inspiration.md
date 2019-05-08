@@ -1547,3 +1547,25 @@ public void reduceTest() {
 
 
 
+- 2019.5.8 **三目运算符的NPE**
+
+  当Java中的三目运算符的第二, 第三操作数中既有基本类型和对象时, 其中的对象就会拆箱为基本类型进行比较
+
+  比如:
+
+  ```java
+  Map<String,Boolean> map =  new HashMap<String, Boolean>();
+  Boolean b = (map!=null ? map.get("test") : false);
+  
+  //反编译后
+  HashMap hashmap = new HashMap();
+  Boolean boolean1 = Boolean.valueOf(hashmap == null ? false : ((Boolean)hashmap.get("test")).booleanValue());
+  ```
+
+  > hashmap.get(“test”)->null;
+  >
+  > (Boolean)null->null;
+  >
+  > null.booleanValue()->报错
+
+解决的话二三操作数都用对象类型就可以 `Boolean b = (map!=null ? map.get("test") : Boolean.FALSE);`
