@@ -1581,3 +1581,48 @@ secretKey=Ktchyeo+ANj3VxnesYCqgA==
 ```java
 String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode(appConfig.getUserIdSecretKey())));
 ```
+
+
+
+- 2019.05.09 **A方法调用B方法事务**
+
+  Spring事务处理中, A方法无事务, 用比如`this.`调用同一个类中带事务注解的B方法, 那么B方法中的事务将不生效.
+
+  原因: **在一个Service内部进行事务方法的嵌套调用,普通方法和事务方法之间的嵌套调用，都不会开启新的事务。spring采用动态代理机制来实现事务控制，而动态代理最终都是要调用原始对象的，而原始对象再去调用方法时，是不会再触发代理了**
+
+  参考链接: [spring 事务处理中，同一个类方法调用事务不生效问题](https://blog.csdn.net/liming19890713/article/details/79225894)
+
+  另外`@Transactional`注解放到除了public以外的方法上声明的事务也将被忽略。
+
+  解决: 想办法让方法调用能走代理, 而不是普通调用。 通过接口方法调用, 接口可以是其他接口类, 也可以是自身`@Autowired`注入的(如下)
+
+  ```
+  @Autowired
+  private XxxService selfService;
+  ```
+
+  
+
+```
+    @Autowired
+    private TeamService selfService;
+    
+    @Override
+    public String test() {
+        EntityPo po = new EntityPo();
+        po.setName("zzzz");
+        xxxDao.insert(po);
+        selfService.test1();
+        throw new RuntimeException("rollback!");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void test1(){
+        EntityPo po = new EntityPo();
+        po.setName("zzzz");
+        xxxDao.insert(po);
+        throw new RuntimeException("rollback!!!!!!");
+    }
+```
+
