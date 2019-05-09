@@ -1568,4 +1568,16 @@ public void reduceTest() {
   >
   > null.booleanValue()->报错
 
-解决的话二三操作数都用对象类型就可以 `Boolean b = (map!=null ? map.get("test") : Boolean.FALSE);`
+解决办法 :  二三操作数都用对象类型就可以 `Boolean b = (map!=null ? map.get("test") : Boolean.FALSE);`
+
+
+
+可以用AES(对称加密)方法 生成**邀请码**:
+
+```
+secretKey=Ktchyeo+ANj3VxnesYCqgA==
+```
+
+```java
+String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode(appConfig.getUserIdSecretKey())));
+```
