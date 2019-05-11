@@ -1594,16 +1594,22 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 
   另外`@Transactional`注解放到除了public以外的方法上声明的事务也将被忽略。
 
-  解决: 想办法让方法调用能走代理, 而不是普通调用。 通过接口方法调用, 接口可以是其他接口类, 也可以是自身`@Autowired`注入的(如下)
+  
+
+  思路: @Transactional的事务开启 ，或者是基于接口的 或者是基于类的代理被创建。所以在同一个类中一个无事务的方法调用另一个有事务的方法，事务是不会起作用的。
+
+  
+
+  解决: 想办法让方法调用能走代理, 而不是普通调用。可以把方法B放到另外一个service或者dao，然后把这个server或者dao通过@Autowired注入到方法A的bean里面，这样即使方法A没用事务，方法B也可以执行自己的事务了。 通过接口方法调用, 接口可以是其他接口类, 也可以是自身`@Autowired`注入的(如下)
 
   ```
   @Autowired
   private XxxService selfService;
   ```
 
-  
+  或者在主方法上加上事务注解, 也可以生效(前提是调用的方法上能正确抛出异常,没有用try/catch包住等)
 
-```
+```java
     @Autowired
     private TeamService selfService;
     
@@ -1626,3 +1632,14 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
     }
 ```
 
+**同样的道理也适用于其他使用动态代理实现的注解等功能失效的问题。**
+
+
+
+
+
+-   2019.05.11 **Spring AOP执行顺序**
+
+参考博文: [spring多个AOP执行先后顺序](https://blog.csdn.net/qqXHwwqwq/article/details/51678595)
+
+![spring多个AOP执行先后顺序](D:\APPLICATIONS\A_WOK\BlogSrcFile\assets\1557560285574.png)
