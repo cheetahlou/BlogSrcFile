@@ -1643,3 +1643,54 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 参考博文: [spring多个AOP执行先后顺序](https://blog.csdn.net/qqXHwwqwq/article/details/51678595)
 
 ![spring多个AOP执行先后顺序](D:\APPLICATIONS\A_WOK\BlogSrcFile\assets\1557560285574.png)
+
+-   2019.05.13   **MongoDB使用场景**
+
+相关文章链接: [什么场景应该用 MongoDB ?](http://www.mongoing.com/archives/3609)
+
+![1557729143318](D:\APPLICATIONS\A_WOK\BlogSrcFile\assets\1557729143318.png)
+
+实际项目中MongoDB常用做第三方服务的响应日志记录。
+
+
+
+#### 常见http请求中的 contentType:
+
+<blockquote>
+  <p><em>附enctype取值编码含义</em></p>
+  <div class="table-box"><table>
+<thead>
+<tr>
+  <th>值</th>
+  <th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+  <td>application/x-www-form-urlencoded</td>
+  <td>在发送前编码所有字符<br>（默认，空格转换为 “+” 加号，特殊符号转换为 ASCII HEX 值）</td>
+</tr>
+<tr>
+  <td>multipart/form-data</td>
+  <td>不对字符编码<br>（在使用包含文件上传控件的表单时，必须使用该值）</td>
+</tr>
+<tr>
+  <td>text/plain</td>
+  <td>纯文本<br>（空格转换为 “+” 加号，但不对特殊字符编码，据说get方式会这样，post时不会）</td>
+</tr>
+</tbody></table></div>
+</blockquote>
+
+
+####  常见的RuntimeException:
+
+>   NullPointerException- 空指针引用异常
+>   ClassCastException - 类型强制转换异常。
+>   IllegalArgumentException - 传递非法参数异常。
+>   ArithmeticException - 算术运算异常
+>   ArrayStoreException - 向数组中存放与声明类型不兼容对象异常
+>   IndexOutOfBoundsException - 下标越界异常
+>   NegativeArraySizeException - 创建一个大小为负数的数组错误异常
+>   NumberFormatException - 数字格式异常
+>   SecurityException - 安全异常
+>   UnsupportedOperationException - 不支持的操作异常
+
