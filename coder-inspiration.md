@@ -1757,3 +1757,8 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 >
 >   将输出的信息发给开发部进行确认，这样就能找出有问题的代码。  
 
+-   2019.05.22  **npm基本操作**
+
+`npm run dev` 运行
+
+`npm build` 打包
