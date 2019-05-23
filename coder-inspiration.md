@@ -1762,3 +1762,33 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 `npm run dev` 运行
 
 `npm build` 打包
+
+-   2019.05.23  **泛型方法返回不同List<T>**
+
+    
+
+    今天的应用场景 返回一个List,该List的元素类型可以是不同的类,根据参数动态获取不同的属性映射到不同的类, 想到根据传参(传入Class类型)不同返回不同的List<T>
+
+    ![1558598143255](D:\APPLICATIONS\A_WOK\BlogSrcFile\assets\1558598143255.png)
+
+```java
+  {
+  		Collection<Field<?>> fields = xxx;
+        if(isOpen){
+            fields.add(DMP_TEAM_USER.TEAM_ID);
+            fields.add(DMP_TEAM_USER.USER_ID);
+        }
+        return fields;
+    }
+
+    /**
+     * 查询团队成员 信息
+     * @param param
+     * @param isOpen 返回是否包含userId,teamId等 ,true = 包含
+     */
+    public <T> List<T> fetchTeamMembersContainLeader(Class<T> clazz ,TeamUserParam param, Boolean isOpen) {
+        return dslContext.select(bizResultMap(isOpen)).from(DMP_TEAM_USER)
+                .fetchInto(clazz);
+    }
+```
+
