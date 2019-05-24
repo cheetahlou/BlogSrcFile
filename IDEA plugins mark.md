@@ -19,8 +19,12 @@ tags:
 
 5. **MybatisX**
 
-6. **Background Image Plus**
+6. **Mybatis Generator Plus** 
 
-7. **Stack Overflow**
+    >   idea的database工具中使用，右击选择表生成mybatis相关的代码
 
-8. **Markdown相关**
+7. **Background Image Plus**
+
+8. **Stack Overflow**
+
+9. **Markdown相关**
