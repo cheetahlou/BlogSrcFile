@@ -21,7 +21,7 @@ tags:
 
 6. **Mybatis Generator Plus** 
 
-    >   idea的database工具中使用，右击选择表生成mybatis相关的代码
+    >   idea的database工具中使用，右击选择表生成mybatis XML和实体类代码
 
 7. **Background Image Plus**
 
