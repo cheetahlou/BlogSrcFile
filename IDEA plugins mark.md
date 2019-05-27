@@ -35,13 +35,23 @@ tags:
 
 `Ctrl+W` 扩大选区
 
-`Ctrl+D` 重复一行或选中部分
+`Ctrl+D` 向下复制一行或选中部分
 
 `Ctrl+Alt+左键` 查看方法实现
 
+`Alt+Insert` 生成类的getter/setter/构造器等方法,重写toString(), equals(),hashCode()等方法
+
+`Alt+F7` 查看方法调用
+
+`Alt+/` `Ctrl+Alt+/` (自定义)代码补全提示快捷键   *completion*
+
+`Shift+Alt+Q`  (自定义)  增加/修改 java doc注释 *Fix doc comment*
+
 `Ctrl+Alt+←` , `Ctrl+Alt+→`  光标历史位置跳转, (或鼠标侧键)
 
-`Alt+Enter` 根据初始化内容填充对应类型声明  如`1;` 操作后 `int i = 1;`
+`Alt+Enter` 操作根据初始化内容填充对应类型声明  如`1;` 操作后 `int i = 1;`
+
+`Ctrl+Shift+F9` 快速编译单个文件
 
 `Ctrl+Shift+V`  剪贴板,最近5条复制内容
 
@@ -55,11 +65,19 @@ tags:
 
 `Shift+Enter` 新起下一行
 
+`Shift+Delete` 删除一行
+
 `Ctrl+/` , `Ctrl+Shift+/`   注释一行    注释选中部分
 
 `Ctrl+[` , `Ctrl+]`  移动光标至大括号,代码块头部或尾部 (可找html文件的头尾标签)
 
 `Ctrl+Alt+T` 对选中部分增加包围代码 ,如if/else  try/catch/finally等
+
+`Ctrl+G` 定位到某一行
+
+`Ctrl+F12` 查看文件结构(方法列表)
+
+`Ctrl+P` 查看参数信息
 
 **文件和标签页 **
 
