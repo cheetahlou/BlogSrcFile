@@ -1769,7 +1769,7 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 
     今天的应用场景 返回一个List,该List的元素类型可以是不同的类,根据参数动态获取不同的属性映射到不同的类, 想到根据传参(传入Class类型)不同返回不同的List<T>
 
-    ![1558598143255](D:\APPLICATIONS\A_WOK\BlogSrcFile\assets\1558598143255.png)
+    ![1558598143255](assets\1558598143255.png)
 
 ```java
   {
