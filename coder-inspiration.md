@@ -1649,13 +1649,13 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 
 参考博文: [spring多个AOP执行先后顺序](https://blog.csdn.net/qqXHwwqwq/article/details/51678595)
 
-![spring多个AOP执行先后顺序](D:\APPLICATIONS\A_WOK\BlogSrcFile\assets\1557560285574.png)
+![spring多个AOP执行先后顺序](assets/1557560285574.png)
 
 -   2019.05.13   **MongoDB使用场景**
 
 相关文章链接: [什么场景应该用 MongoDB ?](http://www.mongoing.com/archives/3609)
 
-![1557729143318](D:\APPLICATIONS\A_WOK\BlogSrcFile\assets\1557729143318.png)
+![1557729143318](assets/1557729143318.png)
 
 实际项目中MongoDB常用做第三方服务的响应日志记录。
 
