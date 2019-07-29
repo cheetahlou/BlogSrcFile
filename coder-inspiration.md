@@ -1874,3 +1874,45 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 > ![java-constant](assets/java-constant.png)
 
 阅读体会：`final` 表示对象引用不可变，对象中的值可变，`static`表示在一个JVM中只有这唯一一份对象，如果不用static的话，即使使用了final，但也只是表示当前新建的这个对象中的final变量引用不可变，而其他新建对象中还有多份final变量，JVM中存在多份，也不能算作常量。所以当定义一个常量变量时要final 和 static一起修饰，能用基本类型的也都用基本类型。
+
+***
+
+- 2019.07.29 **java比较APP版本号大小snippet**
+
+```java
+/**
+     * 比较APP版本号的大小
+     * <p>
+     * 1、前者大则返回一个正数
+     * 2、后者大返回一个负数
+     * 3、相等则返回0
+     *
+     * @param version1 app版本号
+     * @param version2 app版本号
+     * @return int
+     */
+    public static int compareAppVersion(String version1, String version2) {
+        if (version1 == null || version2 == null) {
+            throw new RuntimeException("版本号不能为空");
+        }
+        // 注意此处为正则匹配，不能用.
+        String[] versionArray1 = version1.split("\\.");
+        String[] versionArray2 = version2.split("\\.");
+        int idx = 0;
+        // 取数组最小长度值
+        int minLength = Math.min(versionArray1.length, versionArray2.length);
+        int diff = 0;
+        // 先比较长度，再比较字符
+        while (idx < minLength
+                && (diff = versionArray1[idx].length() - versionArray2[idx].length()) == 0
+                && (diff = versionArray1[idx].compareTo(versionArray2[idx])) == 0) {
+            ++idx;
+        }
+        // 如果已经分出大小，则直接返回，如果未分出大小，则再比较位数，有子版本的为大
+        diff = (diff != 0) ? diff : versionArray1.length - versionArray2.length;
+        return diff;
+    }
+```
+
+[参考文章链接](https://blog.csdn.net/admans/article/details/81865652)
+
