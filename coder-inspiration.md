@@ -1916,3 +1916,10 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 
 [参考文章链接](https://blog.csdn.net/admans/article/details/81865652)
 
+***
+
+- 2019.07.30  **事务隔离级别 & 幻读等并发事务处理问题  表格 **
+
+  如图，
+
+  ![1564450948445](assets/1564450948445.png)
