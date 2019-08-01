@@ -1923,3 +1923,14 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
   如图，
 
   ![1564450948445](assets/1564450948445.png)
+
+
+
+> 即便在条件中使用了索引字段，但是否使用索引来检索数据是由MySQL通过判断不同**执行计划**的代价来决定的，如果MySQL认为全表扫描效率更高，比如对一些很小的表，它就不会使用索引，这种情况下InnoDB将使用表锁，而不是行锁
+>
+> **可以通过explain执行计划查看是否真正使用了索引。**
+
+***
+
+- 2019.07.31 **CAS比较交换**
+
