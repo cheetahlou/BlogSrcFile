@@ -1977,7 +1977,7 @@ public final native boolean compareAndSwapLong(Object o, long offset,long expect
 >
 > 实际上在 java 8th 之前，我们在方法中使用内部类时就已经遇到了这样的限制，因为生命周期的限制 JVM 采用复制的策略将局部变量复制一份到内部类中，但是这样会带来多个线程中数据不一致的问题，于是衍生了禁止修改内部类引用的外部局部变量这一简单、粗暴的策略，只不过在 8th 之前必须要求这部分变量采用 final 修饰，但是 8th 开始放宽了这一限制，只要求所引用变量是 “事实上” 的 final 类型即可
 >
-> 引自 https://segmentfault.com/a/1190000012164700 回答。
+> 引自文章 https://segmentfault.com/a/1190000012164700 。
 
 **实例变量在堆上分配的，而局部变量在栈上进行分配，栈内存是线程私有的，所以局部变量也属于线程私有**
 
