@@ -1934,3 +1934,51 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 
 - 2019.07.31 **CAS比较交换**
 
+CAS是CPU直接支持的原子操作指令，所以不存在并发问题
+
+***
+
+- 2019.08.01 **static和final关键字**
+
+  为什么工具类要使用static修饰，不用重复创建对象，不用重复进行申请内存和释放内存等行为。当一个常数或字符串我们需要在程序里反复反复使用的时候，我们就可以把它定义为static final。
+
+### Unsafe 类
+
+Unsafe类可以直接操作 操作系统资源，
+
+Unsafe类中的allocateInstance(clazz)方法可以直接根据类类型创建对象实例
+
+Unsafe中的CAS操作相关：
+
+//第一个参数o为给定对象，offset为对象内存的偏移量，通过这个偏移量迅速定位字段并设置或获取该字段的值，
+//expected表示期望值，x表示要设置的值，下面3个方法都通过CAS原子指令执行操作。
+
+```java
+public final native boolean compareAndSwapObject(Object o, long offset,Object expected, Object x);                                                                                          
+public final native boolean compareAndSwapInt(Object o, long offset,int expected,int x);
+
+public final native boolean compareAndSwapLong(Object o, long offset,long expected,long x);
+
+```
+
+
+
+
+
+***
+
+- 2019.08.02 **Lambda表达式局部变量使用final**
+
+`Variable used in lambda expression should be final or effectively final`
+
+要求在 lambda 表达式中使用的变量必须 __显式声明为 final 或事实上的 final 类型
+
+> 为什么要限制我们直接使用外部的局部变量呢？主要原因在于内存模型，我们都知道实例变量在堆上分配的，而局部变量在栈上进行分配，lambda 表达式运行在一个独立的线程中，了解 JVM 的同学应该都知道栈内存是线程私有的，所以局部变量也属于线程私有，如果肆意的允许 lambda 表达式引用局部变量，可能会存在局部变量以及所属的线程被回收，而 lambda 表达式所在的线程却无从知晓，这个时候去访问就会出现错误，之所以允许引用事实上的 final（没有被声明为 final，但是实际中不存在更改变量值的逻辑），是因为对于该变量操作的是变量副本，因为变量值不会被更改，所以这份副本始终有效。这一限制可能会让刚刚开始接触函数式编程的同学不太适应，需要慢慢的转变思维方式
+>
+> 实际上在 java 8th 之前，我们在方法中使用内部类时就已经遇到了这样的限制，因为生命周期的限制 JVM 采用复制的策略将局部变量复制一份到内部类中，但是这样会带来多个线程中数据不一致的问题，于是衍生了禁止修改内部类引用的外部局部变量这一简单、粗暴的策略，只不过在 8th 之前必须要求这部分变量采用 final 修饰，但是 8th 开始放宽了这一限制，只要求所引用变量是 “事实上” 的 final 类型即可
+>
+> 引自 https://segmentfault.com/a/1190000012164700 回答。
+
+**实例变量在堆上分配的，而局部变量在栈上进行分配，栈内存是线程私有的，所以局部变量也属于线程私有**
+
+***
