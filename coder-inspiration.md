@@ -1982,3 +1982,42 @@ public final native boolean compareAndSwapLong(Object o, long offset,long expect
 **实例变量在堆上分配的，而局部变量在栈上进行分配，栈内存是线程私有的，所以局部变量也属于线程私有**
 
 ***
+
+- 2019.08.07  **递归调用深度过大StackOverFlow**
+
+测试code，虽然只是本地测试，但确实没想到才6000多就栈溢出了，所以使用递归时还是要注意预期深度是否会过大。
+
+```java
+    /*
+    * 递归深度main测试
+    * 打印内容：
+    * zzz:134
+      zzz:133
+      zzz:132
+      zzz:131
+      zzz:130
+      zzz:129
+      Exception in thread "main" java.lang.StackOverflowError
+          at java.io.FileOutputStream.write(zzz.java:326)
+      *
+    * */
+    static int decursive(int zzz){
+        //如果注释下面这行递归深度大约可以6750→6800多出50，不知道具体有什么特别的影响,多次测试下来深度数值有高低但是相差不大
+//        String zz = String.valueOf(zzz);
+        System.out.println("zzz:"+zzz);
+        if(zzz>0){
+            decursive(zzz-1);
+        }
+        return 1;
+    }
+
+    public static void main(String[] args) {
+        int depth = 6800;
+        decursive(depth);
+    }
+```
+
+
+
+***
+
