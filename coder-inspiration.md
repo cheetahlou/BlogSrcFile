@@ -1875,6 +1875,8 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 
 阅读体会：`final` 表示对象引用不可变，对象中的值可变，`static`表示在一个JVM中只有这唯一一份对象，如果不用static的话，即使使用了final，但也只是表示当前新建的这个对象中的final变量引用不可变，而其他新建对象中还有多份final变量，JVM中存在多份，也不能算作常量。所以当定义一个常量变量时要final 和 static一起修饰，能用基本类型的也都用基本类型。
 
+多个类中需要调用并且是与对象无关的方法可设为static静态方法，方便调用。
+
 ***
 
 - 2019.07.29 **java比较APP版本号大小snippet**
@@ -2019,5 +2021,29 @@ public final native boolean compareAndSwapLong(Object o, long offset,long expect
 
 
 
+#### Lambda 排序comparator
+
+```java
+Comparator<Developer> salaryComparator = (o1, o2)->o1.getSalary().compareTo(o2.getSalary());
+listDevs.sort(salaryComparator);
+```
+
+
+
 ***
 
+- 2019.08.16 **聚集索引和非聚集索引**
+
+*聚集索引*相当于我们书本上前面的目录的一样，它可以方便快速的找到你想找的内容，而*非聚集索引*就相当于书最后几页的解释，它是对书中某个语句或者是生词的解释，就像我们上学时候的地理说一样，书后面都有各种地理名称的英文解释
+
+聚集索引会降低 insert，和update操作的性能，所以，是否使用聚集索引要全面衡量。
+
+***
+
+名词解释：
+
+**自旋**：不成功就一直循环执行直到成功，不断地重试，如while(flag)
+
+CAS的ABA问题：读取和赋值的时候是同一个值，但它的值可能被改为其他值，然后又改回A，那CAS操作就会误认为它从来没有被修改过
+
+***
