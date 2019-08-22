@@ -1875,6 +1875,8 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 
 阅读体会：`final` 表示对象引用不可变，对象中的值可变，`static`表示在一个JVM中只有这唯一一份对象，如果不用static的话，即使使用了final，但也只是表示当前新建的这个对象中的final变量引用不可变，而其他新建对象中还有多份final变量，JVM中存在多份，也不能算作常量。所以当定义一个常量变量时要final 和 static一起修饰，能用基本类型的也都用基本类型。
 
+多个类中需要调用并且是与对象无关的方法可设为static静态方法，方便调用。
+
 ***
 
 - 2019.07.29 **java比较APP版本号大小snippet**
@@ -1980,5 +1982,78 @@ public final native boolean compareAndSwapLong(Object o, long offset,long expect
 > 引自文章 https://segmentfault.com/a/1190000012164700 。
 
 **实例变量在堆上分配的，而局部变量在栈上进行分配，栈内存是线程私有的，所以局部变量也属于线程私有**
+
+***
+
+- 2019.08.07  **递归调用深度过大StackOverFlow**
+
+测试code，虽然只是本地测试，但确实没想到才6000多就栈溢出了，所以使用递归时还是要注意预期深度是否会过大。
+
+```java
+    /*
+    * 递归深度main测试
+    * 打印内容：
+    * zzz:134
+      zzz:133
+      zzz:132
+      zzz:131
+      zzz:130
+      zzz:129
+      Exception in thread "main" java.lang.StackOverflowError
+          at java.io.FileOutputStream.write(zzz.java:326)
+      *
+    * */
+    static int decursive(int zzz){
+        //如果注释下面这行递归深度大约可以6750→6800多出50，不知道具体有什么特别的影响,多次测试下来深度数值有高低但是相差不大
+//        String zz = String.valueOf(zzz);
+        System.out.println("zzz:"+zzz);
+        if(zzz>0){
+            decursive(zzz-1);
+        }
+        return 1;
+    }
+
+    public static void main(String[] args) {
+        int depth = 6800;
+        decursive(depth);
+    }
+```
+
+
+
+#### Lambda 排序comparator
+
+```java
+Comparator<Developer> salaryComparator = (o1, o2)->o1.getSalary().compareTo(o2.getSalary());
+listDevs.sort(salaryComparator);
+```
+
+
+
+***
+
+- 2019.08.16 **聚集索引和非聚集索引**
+
+*聚集索引*相当于我们书本上前面的目录的一样，它可以方便快速的找到你想找的内容，而*非聚集索引*就相当于书最后几页的解释，它是对书中某个语句或者是生词的解释，就像我们上学时候的地理说一样，书后面都有各种地理名称的英文解释
+
+聚集索引会降低 insert，和update操作的性能，所以，是否使用聚集索引要全面衡量。
+
+***
+
+名词解释：
+
+**自旋**：不成功就一直循环执行直到成功，不断地重试，如while(flag)
+
+CAS的ABA问题：读取和赋值的时候是同一个值，但它的值可能被改为其他值，然后又改回A，那CAS操作就会误认为它从来没有被修改过
+
+***
+
+- 2019.08.20  **缓存数据库一致**
+
+经典的缓存+数据库读写的模式，就是 *Cache Aside Pattern*。
+
+读的时候，先读缓存，缓存没有的话，就读数据库，然后取出数据后放入缓存，同时返回响应。更新的时候，先更新数据库，然后再删除缓存。
+
+**为什么是删除缓存，而不是更新缓存？**原因很简单，很多时候，在复杂点的缓存场景，缓存不单单是数据库中直接取出来的值。
 
 ***
