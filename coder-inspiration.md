@@ -2154,3 +2154,5 @@ InnoDB行锁是通过索引上的索引项来实现的，这一点ＭySQL与Orac
 参考链接：https://www.cnblogs.com/chenqionghe/p/4845693.html
 
 ***
+
+主从结构的服务器、数据库等等一般做实时的数据同步，同步工具如阿里云自带的dts
