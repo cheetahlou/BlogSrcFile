@@ -21,4 +21,5 @@ tags:
 | populate    | v. 填充                           | 比如populate bean                    |
 | replica     | n. 副本，复制品                   | /'replɪkə/                           |
 | evict       | vt.驱逐 ，淘汰                    | /ɪ'vɪkt/   Evict Policy 缓存驱逐策略 |
+| analogous   | adj.相似的,可比拟的               | /ə'næləgəs/                          |
 
