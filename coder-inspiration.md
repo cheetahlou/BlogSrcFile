@@ -2197,3 +2197,27 @@ JDK8后永久代被删除，原来存在于永久代中的静态变量和常量�
 ```
 
 ***
+
+- 2019.09.11 **Http长连接、WebSocket**
+
+ 长连接：浏览器发出Http请求之前，客户端与服务端之间要进行Tcp连接的，通过三次握手实现。连接建立之后才能进行请求，数据的传送。在传统的Htttp请求时（http/1.0版本），客户端发出请求，服务端回复后http连接关闭。然后Tcp连接关闭。然后在下一次Http请求时又要建立新的Tcp连接。这无形中造成了资源得浪费。为了解决这一问题，Http/1.1想出了持久化连接。只要任意一端没有明确的提出 断开连接，则保持TCP连接状态。通过首部字段Connection：Keep-Alive实现。Http/1.1默认为长连接。
+
+WebSocket是[HTML5](https://link.zhihu.com/?target=http%3A//www.bing.com/knows/html5)开始提供的一种在单个 TCP 连接上进行全双工通讯的协议。WebSocket通讯协议于2011年被IETF定为标准[RFC](https://link.zhihu.com/?target=http%3A//www.bing.com/knows/RFC_%E4%B8%80%E7%B3%BB%E5%88%97%E4%BB%A5%E7%BC%96%E5%8F%B7%E6%8E%92%E5%AE%9A%E7%9A%84%E6%96%87%E4%BB%B6) 6455，WebSocketAPI被[W3C](https://link.zhihu.com/?target=http%3A//www.bing.com/knows/%E4%B8%87%E7%BB%B4%E7%BD%91%E8%81%94%E7%9B%9F)定为标准。 在WebSocket API中，[浏览器](https://link.zhihu.com/?target=http%3A//www.bing.com/knows/%E6%B5%8F%E8%A7%88%E5%99%A8)和[服务器](https://link.zhihu.com/?target=http%3A//www.bing.com/knows/%E6%9C%8D%E5%8A%A1%E5%99%A8)只需要做一个握手的动作，然后，[浏览器](https://link.zhihu.com/?target=http%3A//www.bing.com/knows/%E6%B5%8F%E8%A7%88%E5%99%A8)和[服务器](https://link.zhihu.com/?target=http%3A//www.bing.com/knows/%E6%9C%8D%E5%8A%A1%E5%99%A8)之间就形成了一条快速通道。两者之间就直接可以数据互相传送。
+
+WebSocket API最伟大之处在于服务器和客户端可以在给定的时间范围内的任意时刻，相互推送信息。
+
+***
+
+### Java 11新特性
+
+Java 11作为Java 8之后下一个长期支持版本，看看有什么关键新特性。
+
+1. 允许开发者在 Lambda 表达式中使用 var 进行参数声明
+2. **ZGC：可伸缩低延迟垃圾收集器 **    最受关注
+3. 飞行记录器 ：故障发生后从事件记录文件中提取出有用信息对故障进行分析
+
+
+
+参考IBM文章：[Java11新特性](https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-11/index.html)
+
+***
