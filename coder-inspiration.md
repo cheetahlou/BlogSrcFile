@@ -1938,11 +1938,7 @@ String targetCode = AES.encrypt(userId.toString(), AES.generateKey(Base64.decode
 
 CAS是CPU直接支持的原子操作指令，所以不存在并发问题
 
-***
-
-- 2019.08.01 **static和final关键字**
-
-  为什么工具类要使用static修饰，不用重复创建对象，不用重复进行申请内存和释放内存等行为。当一个常数或字符串我们需要在程序里反复反复使用的时候，我们就可以把它定义为static final。
+在JDK1.5之后，Java程序才可以用CAS操作，该操作由sun.misc.Unsafe类中的compareAndSwapInt()和compareAndSwapLong()等几个方法包装提供。
 
 ### Unsafe 类
 
@@ -1962,6 +1958,14 @@ public final native boolean compareAndSwapInt(Object o, long offset,int expected
 public final native boolean compareAndSwapLong(Object o, long offset,long expected,long x);
 
 ```
+
+
+
+***
+
+- 2019.08.01 **static和final关键字**
+
+  为什么工具类要使用static修饰，不用重复创建对象，不用重复进行申请内存和释放内存等行为。当一个常数或字符串我们需要在程序里反复反复使用的时候，我们就可以把它定义为static final。
 
 
 
@@ -2219,5 +2223,36 @@ Java 11作为Java 8之后下一个长期支持版本，看看有什么关键新�
 
 
 参考IBM文章：[Java11新特性](https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-11/index.html)
+
+***
+
+- 2019.09.12  **Spring AOP的两种代理方式**
+
+关于动态代理和CGLIB这两种方式的简要总结如下：
+
+**JDK动态代理(Dynamic Proxy)**：
+
+基于标准JDK的动态代理功能
+只针对实现了接口的业务对象
+
+由java内部的反射机制来实现，代理类的名字的前缀统一为“$Proxy”
+
+**CGLIB**：
+
+通过动态地对目标对象进行子类化来实现AOP代理，上面截图中的SampleBean$$EnhancerByCGLIB$$1767dd4b即为动态创建的一个子类
+需要指定@EnableAspectJAutoProxy(proxyTargetClass = true)来强制使用
+当业务对象没有实现任何接口的时候默认会选择CGLIB
+
+借助asm来实现
+
+***
+
+### [对象如何晋升到老年代？](https://www.cnblogs.com/wylwyl/p/10500844.html)
+
+对象优先在新生代的 eden 区分配内存，但是也并不绝对，下面几种情况对象会晋升到老年代
+
+- 大对象直接进入老年代。比如很长的字符串，或者很大的数组等。
+- 长期存活的对象进入老年代。在堆中分配内存的对象，其内存布局的对象头中（Header）包含了 GC 分代年龄标记信息。如果对象在 eden 区出生，那么它的 GC 分代年龄会初始值为 1，每熬过一次 Minor GC 而不被回收，这个值就会增加 1 岁。当它的年龄到达一定的数值时（jdk1.7 默认是 15 岁），就会晋升到老年代中。
+- 动态对象年龄判定。当 Survivor 空间中相同年龄所有对象的大小总和大于 Survivor 空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代，而不需要达到默认的分代年龄。
 
 ***
