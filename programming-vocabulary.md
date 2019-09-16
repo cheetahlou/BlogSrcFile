@@ -23,4 +23,14 @@ tags:
 | evict       | vt.驱逐 ，淘汰                    | /ɪ'vɪkt/   Evict Policy 缓存驱逐策略 |
 | analogous   | adj.相似的,可比拟的               | /ə'næləgəs/                          |
 | latency     | n. 延迟                           | low latency 低延迟                   |
+| consistency | n. 一致性                         |                                      |
+| isolation   | n. 隔离                           | /aɪsə'leɪʃ(ə)n/   ex.事务隔离级别    |
+
+其他词汇：
+
+| 词汇 | 释义                       | 备注 |
+| ---- | -------------------------- | ---- |
+| 闭环 | 有始有终完成               |      |
+| 赋能 | 放权，赋予(员工等)更多权力 |      |
+|      |                            |      |
 

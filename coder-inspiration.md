@@ -2256,3 +2256,75 @@ Java 11作为Java 8之后下一个长期支持版本，看看有什么关键新�
 - 动态对象年龄判定。当 Survivor 空间中相同年龄所有对象的大小总和大于 Survivor 空间的一半，年龄大于或等于该年龄的对象就可以直接进入老年代，而不需要达到默认的分代年龄。
 
 ***
+
+- 2019.09.16  **分布式一致性的二阶段提交 2PC**
+
+二阶段提交：通过协调者向参与者发出第一阶段的**请求提交**，也就是Prepare消息，参与者执行本地事务，向协调者发送一个**完成**的消息，如果协调者收到所有的完成消息则向参与者发起第二阶段的**提交**请求，如果没有收到所有参与者的ok消息或者超时，向所有参与者发出**“回滚”**请求。两种都以收到参与者的消息应答ACK为准。
+
+2PC并不是完美的，他存在着同步阻塞问题、单点故障问题、无法100%保证数据一致性等问题。
+
+![](https://user-gold-cdn.xitu.io/2019/9/2/16cefb83734bde82?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+
+![二阶段提交回滚示意图](https://user-gold-cdn.xitu.io/2019/9/2/16cefb838f46db4e?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+
+
+
+***
+
+redis的两种持久化策略：RDB和AOF\
+
+### RDB持久化方式测试：
+
+当redis.conf中`appendonly no`，即此时不启用AOF持久化策略，下图为验证手动触发RDB `bgsave`过程：
+
+![手动bgsave](assets/1568625220781.png)
+
+也可以通过达到`save <seconds> <changes>`的配置来验证了RDB持久化按频率触发规则：
+
+快照的默认满足条件频率：
+
+```shell
+#	Will save the DB if both the given number of seconds and the given
+#   number of write operations against the DB occurred.
+#	当时间秒数和变更操作数两者都达到给定数字时才会触发save DB
+
+save 900 1
+save 300 10
+save 60 10000
+```
+
+
+
+
+
+![验证达到RDB设定的save频率后持久化](assets/1568626895394.png)
+
+
+
+### AOF 持久化方式测试验证
+
+启用AOF持久化策略，重新尝试前面失败的持久化
+
+```
+# appendfsync always 每次都同步(最安全但是最慢)
+
+appendfsync everysec 每秒同步(默认的同步策略)
+
+# appendfsync no 不主动同步,由操作系统来决定(最快但是不安全)
+```
+
+
+
+![测试AOF持久化策略](assets/1568628793896.png)
+
+如果此时修改为`appendfsync no`即把AOF策略停用后，再进行更改，则断开后恢复持久化数据时将用对应目录下的rdb备份文件来恢复，如果启用AOF策略启用，将用AOF文件来恢复数据
+
+![1568629585322](assets/1568629585322.png)
+
+```shell
+[root@izwz9ezkmfgg9rdwg0f44oz redis]# ll /var/lib/redis
+total 8
+-rw-r--r-- 1 root root 161 Sep 16 18:15 appendonly.aof
+-rw-r--r-- 1 root root 107 Sep 16 17:54 dump.rdb
+```
+
