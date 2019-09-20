@@ -2167,7 +2167,7 @@ InnoDB行锁是通过索引上的索引项来实现的，这一点ＭySQL与Orac
 
   1）Lock前缀指令会引起处理器缓存回写到内存
 
-  2）一个处理器的缓存回写到内存会导致其他处理器的缓存无效
+  2）一个处理器的缓存回写到内存会导致其他处理器中的缓存无效
 
 《Java并发编程的艺术》
 
@@ -2328,3 +2328,24 @@ total 8
 -rw-r--r-- 1 root root 107 Sep 16 17:54 dump.rdb
 ```
 
+***
+
+- 2019.09.19   **Redis的AOF详细过程**
+
+***
+
+### hashCode：
+
+OpenJDK8 默认hashCode的计算方法是通过和当前线程有关的一个随机数+三个确定值，运用Marsaglia's xorshift scheme随机数算法得到的一个随机数。和对象内存地址无关
+
+***
+
+- 2019.09.20  **TCC分布式事务**
+
+参考文章链接：[TCC分布式事务](https://www.cnblogs.com/jajian/p/10014145.html)
+
+![1568962826440](assets/1568962826440.png)
+
+![D7087D1B-1E4D-4C0E-8BA4-B2A8B36D0132.png](http://static.tianshouzhi.com/ueditor/upload/image/20180205/1517793973852088232.png)
+
+***
