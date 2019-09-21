@@ -2212,9 +2212,9 @@ WebSocket API最伟大之处在于服务器和客户端可以在给定的时间�
 
 ***
 
-### Java 11新特性
+### JDK11新特性
 
-Java 11作为Java 8之后下一个长期支持版本，看看有什么关键新特性。
+JDK 11作为JDK 8之后下一个长期支持版本，看看有什么关键新特性。
 
 1. 允许开发者在 Lambda 表达式中使用 var 进行参数声明
 2. **ZGC：可伸缩低延迟垃圾收集器 **    最受关注
@@ -2222,7 +2222,7 @@ Java 11作为Java 8之后下一个长期支持版本，看看有什么关键新�
 
 
 
-参考IBM文章：[Java11新特性](https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-11/index.html)
+参考IBM文章：[JDK11新特性](https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-11/index.html)
 
 ***
 
@@ -2347,5 +2347,24 @@ OpenJDK8 默认hashCode的计算方法是通过和当前线程有关的一个随
 ![1568962826440](assets/1568962826440.png)
 
 ![D7087D1B-1E4D-4C0E-8BA4-B2A8B36D0132.png](http://static.tianshouzhi.com/ueditor/upload/image/20180205/1517793973852088232.png)
+
+***
+
+- 2019.09.21  **JVM的锁机制与CAS**
+
+JVM内部实现了很多种锁机制，有偏向锁、轻量级锁和互斥锁。除了偏向锁，JVM实现锁的方式都用了循环
+CAS，即当一个线程想进入同步块的时候使用循环CAS的方式来获取锁，当它退出同步块的时候使用循环CAS释放锁。
+
+***
+
+volatile写/读的内存语义如下：
+
+当写一个volatile变量时，JMM会把该线程对应的本地内存中的共享变量值刷新到主内
+存。
+
+当读一个volatile变量时，JMM会把该线程对应的本地内存置为无效。线程接下来将从主
+内存中读取共享变量。
+
+volatile修饰变量时使用 i++并不能保证原子性
 
 ***
