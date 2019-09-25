@@ -2368,3 +2368,36 @@ volatile写/读的内存语义如下：
 volatile修饰变量时使用 i++并不能保证原子性
 
 ***
+
+- 2019.09.23   
+
+CopyOnWriteArrayList适合使用在读操作远远大于写操作的场景里。
+
+
+
+***
+
+- 2019.09.25  **Hashmap的tableSizeFor()方法**
+
+方法代码如下，
+
+```java
+    /**
+     * Returns a power of two size for the given target capacity.
+     */
+    static final int tableSizeFor(int cap) {
+        int n = cap - 1;
+        n |= n >>> 1;
+        n |= n >>> 2;
+        n |= n >>> 4;
+        n |= n >>> 8;
+        n |= n >>> 16;
+        return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+    }
+```
+
+作用是返回一个大于等于当前数且最接近的2的n次幂
+
+参考链接：[HashMap源码注解 之 静态工具方法hash()、tableSizeFor()](https://blog.csdn.net/fan2012huan/article/details/51097331)
+
+***
