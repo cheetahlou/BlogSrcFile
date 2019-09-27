@@ -25,6 +25,7 @@ tags:
 | latency     | n. 延迟                           | low latency 低延迟                   |
 | consistency | n. 一致性                         |                                      |
 | isolation   | n. 隔离                           | /aɪsə'leɪʃ(ə)n/   ex.事务隔离级别    |
+| purge       | v. 净化                           | purging expired keys 清理过期keys    |
 
 其他词汇：
 
