@@ -2482,3 +2482,19 @@ ReenTrantLock的实现是一种自旋锁，通过循环调用CAS操作来实现�
 答案是，如果你需要实现ReenTrantLock的三个独有功能时。
 
 ***
+
+- 2019.10.22  **红黑树性质**
+
+1. 节点是红色或黑色。
+2. 根是黑色。
+3. 所有叶子都是黑色（叶子是NIL节点）。
+4. 每个红色节点必须有两个黑色的子节点。（从每个叶子到根的所有路径上不能有两个连续的红色节点。）
+5. 从任一节点到其每个叶子的所有[简单路径](https://zh.wikipedia.org/wiki/道路_(图论))都包含相同数目的黑色节点。
+
+ ![An example of a red-black tree](https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Red-black_tree_example.svg/450px-Red-black_tree_example.svg.png) 
+
+有了上面的几个性质作为限制，即可避免二叉查找树退化成单链表的情况 
+
+红黑树的关键特性：从根到叶子的最长的可能路径不多于最短的可能路径的两倍长。 
+
+***
