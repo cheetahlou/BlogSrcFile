@@ -27,6 +27,8 @@ tags:
 | isolation   | n. 隔离                           | /aɪsə'leɪʃ(ə)n/   ex.事务隔离级别    |
 | purge       | v. 净化                           | purging expired keys 清理过期keys    |
 | potential   | adj. 可能的，潜在的               |                                      |
+| exclusive   | adj. 独有的，独占的               | MESI缓存一致性协议E                  |
+| coherent    | adj.一致的，连贯的                | cache coherency 缓存一致性           |
 
 其他词汇：
 
