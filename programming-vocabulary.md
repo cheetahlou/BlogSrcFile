@@ -27,8 +27,9 @@ tags:
 | isolation   | n. 隔离                           | /aɪsə'leɪʃ(ə)n/   ex.事务隔离级别    |
 | purge       | v. 净化                           | purging expired keys 清理过期keys    |
 | potential   | adj. 可能的，潜在的               |                                      |
-| exclusive   | adj. 独有的，独占的               | MESI缓存一致性协议E                  |
+| exclusive   | adj. 独有的，独占的               | MESI缓存一致性协议“E”                |
 | coherent    | adj.一致的，连贯的                | cache coherency 缓存一致性           |
+| upvote      | vt.赞，点赞，赞成                 |                                      |
 
 其他词汇：
 
@@ -38,4 +39,8 @@ tags:
 | 赋能 | 放权，赋予(员工等)更多权力 |      |
 |      |                            |      |
 
- {"config":{"abnormalInfo":"人员徘徊告警","deviceType":"camera","eventCode":"SJ000008","eventGrade":1,"eventType":"PersonHover","gmtCreate":"2018-08-24 00:00:00","gmtModify":"2018-08-24 17:07:33","haveLiveview":1,"havePic":1,"haveVideo":0,"id":8,"treaments":"查看"},"dealRecord":"未处理","delete":false,"description":"有人员徘徊，请及时干预！","deviceType":"camera","deviceUniqueId":"8950184a6ff34e538787ab98d5ef4404","eventCategory":"SecurityEvent","eventGrade":1,"eventNoticeFlag":2,"eventPicUrl":"http://115.233.227.198:8088/image/3/3/4f0044f2e2504173aabd456cbe2fc26d/0/7/2a69/3085305434/212354","eventSort":"alarm","eventStatus":2,"eventType":"PersonHover","id":279288,"position":"","projectId":51,"status":0,"time":"2019-10-21 17:46:15"} 
+0000 0000 1000
+
+0011 0010 0000
+
+0011 0010 1000
