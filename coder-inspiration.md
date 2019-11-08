@@ -2585,3 +2585,76 @@ Positive example 3：
 ​        
 
 ***
+
+- 2019.11.06  **区块链概念**   
+
+**什么是区块链**：区块链就是一个参与者可以记账、查账，并且账务记录几乎不可被篡改的数据库。最本质上来讲，区块链就是一个特殊的数据库。 
+
+****
+
+- 2019.11.07  **代码审计常见漏洞**
+
+1. 平行越权
+
+举例：通过id或编号直接SQL查询数据没有做权限限制，则有可能通过遍历id编号等获取其他用户的信息
+
+ 平行越权：权限类型不变，权限ID改变；如：同是普通用户，其中一个用户可查看其它用户信息。常见的就是通过修改某一个ID参数来查看其他用户的信息，比如你查看自己的信息时，发现URL连接中，或者http请求头中有一个userID的参数，然后你修改这个参数就可以查看那个人信息了 
+
+***
+
+- 2019.11.08  **并发计数器CountDownLatch**
+
+作用：多线程下的并发计数器，用CountDownLatch阻塞一个线程，当new CountDownLatch(n)的计数通过其countDown()方法递减至0时，执行被阻塞的线程，并不一定要执行完其他线程，只要计数count递减至0就取消阻塞了。
+
+用法举例：
+
+```java
+    public void countDownLatchDemo() throws InterruptedException {
+        System.out.println("主线程开始执行，即将阻塞");
+        CountDownLatch latch = new CountDownLatch(3);
+
+        //依次创建并启动3个线程
+        new Thread(new Task(latch),"Thread1").start();
+        new Thread(new Task(latch),"Thread2").start();
+        new Thread(new Task(latch),"Thread3").start();
+        latch.await();
+        System.out.println("所有线程已到达，主线程继续执行");
+    }
+
+    static class Task implements Runnable{
+
+        CountDownLatch countDownLatch;
+        public Task(CountDownLatch countDownLatch){
+            this.countDownLatch = countDownLatch;
+        }
+
+        @Override
+        public void run() {
+            System.out.println("当前线程 "+Thread.currentThread().getName()+"正在执行...");
+            countDownLatch.countDown();
+        }
+    }
+```
+
+结果：
+
+> 主线程开始执行，即将阻塞
+> 当前线程 Thread1正在执行...
+> 当前线程 Thread2正在执行...
+> 当前线程 Thread3正在执行...
+> 所有线程已到达，主线程继续执行
+
+弊端：一般n必须小于等于要异步执行的线程数，如果n取值大于线程数（准确来说是大于所有线程执行中countDown()执行次数），就会因为计数无法递减为0一直阻塞线程
+
+
+
+用一个继承AQS的内部类Sync类作为并发计数的实现
+
+```
+ * <p>Memory consistency effects: Until the count reaches
+ * zero, actions in a thread prior to calling
+ * {@code countDown()}
+
+Sync类：Synchronization control For CountDownLatch.* Uses AQS state to represent count.
+private static final class Sync extends AbstractQueuedSynchronizer {}
+```
