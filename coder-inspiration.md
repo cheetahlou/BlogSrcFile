@@ -2658,3 +2658,150 @@ Positive example 3：
 Sync类：Synchronization control For CountDownLatch.* Uses AQS state to represent count.
 private static final class Sync extends AbstractQueuedSynchronizer {}
 ```
+
+
+
+***
+
+- 2019.11.11  **Mybatis默认返回类型**
+
+对于SQL中的SUM查询，默认返回BigDecimal类型，对于COUNT，默认返回Long类型
+
+
+
+慢查询优化：eventProcessing 事件处理统计接口响应时间较长：响应时长1.6s 慢查询SQL优化   ，优化后响应时长 400多ms 也就是0.4s，查询效率提高了75%
+
+原因：数据较多 20w条，查库次数较多，索引
+
+该接口总查库次数8次  优化各状态事件查询，整合SQL逻辑8次变一次全表扫描查询
+
+优化前：
+
+未处理处理中已完成事件数 查询时长：408ms
+事件完成率 查询时长：163ms
+平均响应时长 查询时长：175ms
+平均处理时长 查询时长：171ms
+超过15分钟未响应 查询时长：441ms
+超过1天未完成 查询时长：207ms
+
+优化后：
+
+未处理处理中已完成事件数 查询时长：456ms
+事件完成率 查询时长：0ms
+平均响应时长 查询时长：0ms
+平均处理时长 查询时长：0ms
+超过15分钟未响应 查询时长：0ms
+超过1天未完成 查询时长：0ms
+
+***
+
+- 2019.11.22  **双重检查锁定** 和 **Class对象的初始化锁**
+
+*双重检查锁定*：
+
+```java
+public class DoubleCheckedLocking { // 1
+	private static Instance instance; // 2
+	public static Instance getInstance() { // 3
+		if (instance == null) { // 4:第一次检查
+			synchronized (DoubleCheckedLocking.class) { // 5:加锁
+				if (instance == null) // 6:第二次检查
+					instance = new Instance(); // 7:问题的根源出在这里
+			} // 8
+		} // 9
+		return instance; // 10
+	} // 11
+}
+
+```
+
+ 编译器重排序引起的问题
+
+前面的双重检查锁定示例代码的第7行（instance=new Singleton();）创建了一个对象。这一 行代码可以分解为如下的3行伪代码。 
+
+memory = allocate(); // 1：分配对象的内存空间 
+
+ctorInstance(memory); // 2：初始化对象 instance = memory; 
+
+// 3：设置instance指向刚分配的内存地址 
+
+上面3行伪代码中的2和3之间，可能会被重排序（在一些JIT编译器上，这种重排序是真实 发生的，详情见参考文献1的“Out-of-order writes”部分）。2和3之间重排序之后的执行时序如 下。 
+
+memory = allocate(); // 1：分配对象的内存空间 
+
+instance = memory; // 3：设置instance指向刚分配的内存地址 
+
+// 注意，此时对象还没有被初始化！ 
+
+ctorInstance(memory); // 2：初始化对象  
+
+**可以通过加上volatile关键字修饰来解决 ，本质上是禁止初始化对象和设置instance指向刚分配的内存地址 的重排序**
+
+*Class对象的初始化锁*：
+
+ 初始化一个类，包括执行这个类的静态初始化和初始化在这个类中声明的静态字段。根 据Java语言规范，在首次发生下列任意一种情况时，一个类或接口类型T将被立即初始化。 
+
+ 1）T是一个类，而且一个T类型的实例被创建。
+
+ 2）T是一个类，且T中声明的一个静态方法被调用。
+
+ 3）T中声明的一个静态字段被赋值。
+
+ 4）T中声明的一个静态字段被使用，而且这个字段不是一个常量字段。 
+
+ 基于这个特性，可以实现另一种线程安全的延迟初始化方案（这个方案被称之为 Initialization On Demand Holder idiom）。 
+
+```java
+    public class InstanceFactory {
+        private static class InstanceHolder {
+            public static Instance instance = new Instance();
+        }
+
+        public static Instance getInstance() {
+            return InstanceHolder.instance; // 这里将导致InstanceHolder类被初始化 
+        }
+    }
+```
+
+
+
+***
+
+- 2019.11.25   **wait / notify**
+
+获取锁 ，当条件不满足时 ，Object.wait() 释放对象的锁，该线程移入到对象的等待队列WaitQueue 线程状态变为`WAITING`，另一个线程获取到对象的锁之后Object.notify()，等待队列中的线程被移入到对象的同步队列SynchronizedQueue中，此时状态变为阻塞`BLOCKED`，等到另一线程释放锁之后等待线程再次获取到锁后从wait()方法返回继续执行。
+
+```java
+//等待方
+synchronized(对象) {
+while(条件不满足) {
+对象.wait();
+}
+对应的处理逻辑
+}
+
+//通知方
+synchronized(对象) {
+改变条件
+对象.notifyAll();
+}
+```
+
+![image-20191125164009517](assets/image-20191125164009517.png)
+
+join关键字也用到了wait()原理，JDK中join源码示意如下：
+
+```java
+// 加锁当前线程对象
+public final synchronized void join() throws InterruptedException {
+// 条件不满足，继续等待
+while (isAlive()) {
+wait(0);
+}
+// 条件符合，方法返回
+}
+```
+
+ 当线程终止时，会调用线程自身的notifyAll()方法，会通知所有等待在该线程对象上的线程
+
+***
