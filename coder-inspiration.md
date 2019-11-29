@@ -2846,3 +2846,9 @@ lock.unlock();
   via 《Java并发编程的艺术》
 
 ***
+
+- 2019.11.29 **接上** **ReentrantLock**
+
+ReentrantLock 公平锁的` tryAcquire ` 方法与nonfairTryAcquire(int acquires)比较，唯一不同的位置为判断条件多了 hasQueuedPredecessors()方法，即加入了同步队列中当前节点是否有前驱节点的判断，如果该 方法返回true，则表示有线程比当前线程更早地请求获取锁，因此需要等待前驱线程获取并释 放锁之后才能继续获取锁。 
+
+***
