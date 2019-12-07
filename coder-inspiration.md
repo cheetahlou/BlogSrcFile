@@ -2873,3 +2873,13 @@ Q：锁降级中读锁的获取是否必要呢？
 via [《JAVA 读写锁中锁降级的必要性》](https://www.twblogs.net/a/5d660866bd9eee541c330af5/zh-cn)
 
 ***
+
+- 2019.12.07  **git代码统计**
+
+### 查看git上的个人代码量(替换username)：
+
+```bash
+git log --author="username" --pretty=tformat: --numstat | awk '{ add += $1; subs += $2; loc+= $1 - $2 } END { printf "added lines: %s, removed lines: %s, total lines: %s\n", add, subs, loc }' -
+```
+
+***
