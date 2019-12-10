@@ -2873,3 +2873,20 @@ Q：锁降级中读锁的获取是否必要呢？
 via [《JAVA 读写锁中锁降级的必要性》](https://www.twblogs.net/a/5d660866bd9eee541c330af5/zh-cn)
 
 ***
+
+- 2019.12.10   **MySQL计算时间差函数**
+
+**MySql计算两个日期的时间差函数TIMESTAMPDIFF用法:**
+
+**语法： 
+TIMESTAMPDIFF(interval,datetime_expr1,datetime_expr2)** 
+interval可以是：
+
+1. SECOND 秒 SECONDS
+2. MINUTE 分钟 MINUTES
+3. HOUR 时间 HOURS
+4. DAY 天 DAYS
+5. MONTH 月 MONTHS
+6. YEAR 年 YEARS
+
+***
