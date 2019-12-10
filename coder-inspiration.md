@@ -2874,6 +2874,15 @@ via [《JAVA 读写锁中锁降级的必要性》](https://www.twblogs.net/a/5d6
 
 ***
 
+- 2019.12.07  **git代码统计**
+
+### 查看git上的个人代码量(替换username)：
+
+```bash
+git log --author="username" --pretty=tformat: --numstat | awk '{ add += $1; subs += $2; loc+= $1 - $2 } END { printf "added lines: %s, removed lines: %s, total lines: %s\n", add, subs, loc }' -
+```
+***
+
 - 2019.12.10   **MySQL计算时间差函数**
 
 **MySql计算两个日期的时间差函数TIMESTAMPDIFF用法:**
