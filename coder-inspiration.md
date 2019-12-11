@@ -2899,3 +2899,74 @@ interval可以是：
 6. YEAR 年 YEARS
 
 ***
+
+- 2019.12.11  **RedisEvalsha命令执行lua脚本**
+
+为什么要用lua脚本
+
+redis-cli提供了`EVAL`与`EVALSHA`命令执行Lua脚本:
+
+- EVAL 
+  `EVAL script numkeys key [key ...] arg [arg ...]` 
+  *key*和*arg*两类参数用于向脚本传递数据, 他们的值可在脚本中使用`KEYS`和`ARGV`两个table访问: `KEYS`表示要操作的键名, `ARGV`表示非键名参数(并非强制).
+- EVALSHA 
+  `EVALSHA`命令允许通过脚本的**SHA1**来执行(节省带宽), Redis在执行`EVAL`/`SCRIPT LOAD`后会计算脚本**SHA1**缓存, `EVALSHA`根据**SHA1**取出缓存脚本执行.
+
+### 语法
+
+redis Evalsha 命令基本语法如下：
+
+```
+redis 127.0.0.1:6379> EVALSHA sha1 numkeys key [key ...] arg [arg ...] 
+```
+
+参数说明：
+
+- **sha1** ： 通过 SCRIPT LOAD 生成的 sha1 校验码。
+- **numkeys**： 用于指定键名参数的个数。
+- **key [key ...]**： 从 EVAL 的第三个参数开始算起，表示在脚本中所用到的那些 Redis 键(key)，这些键名参数可以在 Lua 中通过全局变量 KEYS 数组，用 1 为基址的形式访问( KEYS[1] ， KEYS[2] ，以此类推)。
+- **arg [arg ...]**： 附加参数，在 Lua 中通过全局变量 ARGV 数组访问，访问的形式和 KEYS 变量类似( ARGV[1] 、 ARGV[2] ，诸如此类)。
+
+### 举例：
+
+通过数据控制模块提前将库存存入 Redis，将每个秒杀商品在 Redis 中用一个 hash 结构表示。
+
+```json
+"goodsId" : {
+    "Total": 100
+    "Booked": 100
+}
+```
+
+扣量时，服务器通过请求 Redis 获取下单资格，通过以下 lua 脚本实现，由于 Redis 是**单线程**模型，lua 可以保证多个命令的原子性。
+
+```lua
+local n = tonumber(ARGV[1])
+if not n  or n == 0 then
+    return 0
+end
+local vals = redis.call("HMGET", KEYS[1], "Total", "Booked");
+local total = tonumber(vals[1])
+local blocked = tonumber(vals[2])
+if not total or not blocked then
+    return 0
+end
+if blocked + n <= total then
+    redis.call("HINCRBY", KEYS[1], "Booked", n)
+    return n;
+end
+return 0
+```
+
+先使用`SCRIPT LOAD`将 lua 脚本提前缓存在 Redis，然后调用`EVALSHA`调用脚本，比直接调用`EVAL`节省网络带宽：
+
+```shell
+redis 127.0.0.1:6379>SCRIPT LOAD "lua code"
+"438dd755f3fe0d32771753eb57f075b18fed7716"
+redis 127.0.0.1:6379>EVAL 438dd755f3fe0d32771753eb57f075b18fed7716 1 goodsId 1
+```
+
+秒杀服务通过判断 Redis 是否返回抢购个数 n，即可知道此次请求是否扣量成功。
+
+***
+
