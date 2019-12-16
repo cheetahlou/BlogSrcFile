@@ -3117,3 +3117,7 @@ public static Pair<Point, Double> getNearestPointAndDistance(Point point, Point[
 2. 语言规范层面。文件的内容是否符合Java语言规范，比如继承的父类是否为final，实现接口的时候有没有将全部的方法都实现
 3. 语义层面。检查验证字节码是否有可能危害虚拟机运行的代码存在，比如不能把父类对象赋值给子类数据类型，不能赋值给另一个毫无关联的数据类型
 4. 符号引用验证。验证引用的常量和类是否能找到
+
+### 3.准备
+
+准备阶段为类变量赋初始值，即为static变量赋零值，false,0,0.0f,0.0d,null等。为static final常量ConstantValue直接赋值，不再等到初始化阶段
