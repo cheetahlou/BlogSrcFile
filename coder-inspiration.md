@@ -3121,3 +3121,21 @@ public static Pair<Point, Double> getNearestPointAndDistance(Point point, Point[
 ### 3.准备
 
 准备阶段为类变量赋初始值，即为static变量赋零值，false,0,0.0f,0.0d,null等。为static final常量ConstantValue直接赋值，不再等到初始化阶段
+
+
+
+***
+
+- 2019.12.16  **lambda表达式重新赋值**
+
+```java
+    public static void main(String[] args) {
+        List<Integer> list = Arrays.asList(3,2,4);
+        list.stream().sorted(Integer::compare).collect(Collectors.toList());
+        System.out.println(list);//list未改变，打印输出 [3, 2, 4]
+        list = list.stream().sorted(Integer::compare).collect(Collectors.toList());
+        System.out.println(list);//重新赋值，打印输出 [2, 3, 4]
+    }
+```
+
+***
