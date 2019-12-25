@@ -3117,3 +3117,96 @@ public static Pair<Point, Double> getNearestPointAndDistance(Point point, Point[
 2. 语言规范层面。文件的内容是否符合Java语言规范，比如继承的父类是否为final，实现接口的时候有没有将全部的方法都实现
 3. 语义层面。检查验证字节码是否有可能危害虚拟机运行的代码存在，比如不能把父类对象赋值给子类数据类型，不能赋值给另一个毫无关联的数据类型
 4. 符号引用验证。验证引用的常量和类是否能找到
+
+### 3.准备
+
+准备阶段为类变量赋初始值，即为static变量赋零值，false,0,0.0f,0.0d,null等。为static final常量ConstantValue直接赋值，不再等到初始化阶段
+
+### 4.解析
+
+解析动作主要针对类或接口、字段、类方法、接口方法、方法类型、方法句柄和调用点 限定符7类符号引用进行，分别对应于常量池的CONSTANT_Class_info、 CONSTANT_Fieldref_info、CONSTANT_Methodref_info、 CONSTANT_InterfaceMethodref_info、CONSTANT_MethodType_info、 CONSTANT_MethodHandle_info和CONSTANT_InvokeDynamic_info  等 class文件中的符号引用转化为直接引用。
+
+1. 类或接口的解析
+2. 字段解析
+3. 类方法解析
+4. 接口方法解析
+
+
+
+
+
+***
+
+AQS中**head节点不参与排队队列**，并且Node.thread置为null，因为Node中的线程正在执行。
+
+初次获取锁不需要排队直接CAS尝试获取。
+
+```java
+            if (c == 0) {
+                if (!hasQueuedPredecessors() &&
+                    compareAndSetState(0, acquires)) {
+                    setExclusiveOwnerThread(current);
+                    return true;
+                }
+            }
+```
+
+hasQueuedPredecessors()返回是否有已经入队的前置节点们，如果没有返回false，取反之后直接尝试用CAS替换state加锁。
+
+返回false的情况（尝试CAS）：
+
+- 1. 当前节点为head节点
+- 2. 队列为空（！注意，此处的队列不包括head节点，因为head节点线程持有锁不参与排队）
+
+当Node是head节点的next时会尝试用CAS操作获取锁，原因是这时候有可能处于持有锁的线程已经释放了锁但还没有通知唤醒它，在并发情况下时间片调度可能在通知过程中为了提高效率直接CAS尝试修改state获取锁。
+
+当队列中只有一个节点时都不需要排队，比如队列中还未
+
+当Node节点为第一次加锁时不需要排队
+
+**重入**表示的是当前尝试获取锁的线程和head的后一个节点中的线程一样，即	s = h.next ，s.thread == Thread.currentThread()
+
+```java
+    public final void acquire(int arg) {
+        if (!tryAcquire(arg) &&
+            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+            selfInterrupt();
+    }
+```
+
+当tryAcquire()返回false 即 获取锁失败时执行加入队列，加入队列后中断当前线程。
+
+加入队列过程addWaiter(node)，将当前node设置赋值为尾节点tail发现队列还未初始化（tail==null）时会进行队列初始化initializeSyncQueue()
+
+acquireQueued()队列循环获取锁方法，当前一节点为head时尝试获取锁，获取锁成功后设置node为head并且head.thread=null，head.prev=null，赋值线程为空、前驱结点为空，head头结点不参与排队
+
+***
+
+- 2019.12.16  **lambda表达式重新赋值**
+
+```java
+    public static void main(String[] args) {
+        List<Integer> list = Arrays.asList(3,2,4);
+        list.stream().sorted(Integer::compare).collect(Collectors.toList());
+        System.out.println(list);//list未改变，打印输出 [3, 2, 4]
+        list = list.stream().sorted(Integer::compare).collect(Collectors.toList());
+        System.out.println(list);//重新赋值，打印输出 [2, 3, 4]
+    }
+```
+
+***
+
+- 2019.12.18   **MQ消息积压临时扩容**
+
+所以如果积压几百万到上千万的数据，即使消费者恢复了，也需要大概1小时的时间才能恢复过来
+
+操作临时紧急扩容，具体操作步骤和思路如下：
+
+1. 先修复consumer的问题，确保其恢复消费速度，然后将现有consumer都停掉
+2. 新建一个topic，partition是原来的10倍，临时建立好原先10倍或者20倍的queue数量
+3. 然后写一个临时的分发数据的consumer程序，这个程序部署上去消费积压的数据，消费之后不做耗时的处理，直接均匀轮询写入临时建立好的10倍数量的queue
+4. 接着临时征用10倍的机器来部署consumer，每一批consumer消费一个临时queue的数据
+5. 这种做法相当于是临时将queue资源和consumer资源扩大10倍，以正常的10倍速度来消费数据
+6. 等快速消费完积压数据之后，得恢复原先部署架构，重新用原先的consumer机器来消费消息
+
+***
