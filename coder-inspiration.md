@@ -3131,9 +3131,31 @@ public static Pair<Point, Double> getNearestPointAndDistance(Point point, Point[
 3. 类方法解析
 4. 接口方法解析
 
+### 5.初始化
 
+通过程序制定的主观计划去初始化类变量和其他资源，或者说 初始化阶段是执行类构造器＜clinit＞（）方法的过程。
 
+类构造器方法<clinit>方法是由编译器自动收集类中的类变量的赋值动作和静态语句块中的语句（static{}）按语句顺序合并产生的。虚拟机保证先执行父类的<clinit>方法，也就意味着父类中定义的静态语句块要优先于子 类的变量赋值操作。不同的是，父接口的初始化要等到父接口变量使用时。
 
+虚拟机会保证一个类的＜clinit＞（）方法在多线程环境中被正确地加锁、同步，如果多 个线程同时去初始化一个类，那么只会有一个线程去执行这个类的＜clinit＞（）方法，阻塞其他线程。
+
+```java
+//由于父类先执行完<clinit>，所以A的值为2而不是1
+static class Parent{
+public static int A=1；
+static{
+A=2；
+}
+}
+static class Sub extends Parent{
+public static int B=A；
+}
+public static void main（String[]args）{
+System.out.println（Sub.B）；
+}
+```
+
+参考自《Java并发编程的艺术》 虚拟机类加载机制 - 类加载过程
 
 ***
 
@@ -3210,3 +3232,87 @@ acquireQueued()队列循环获取锁方法，当前一节点为head时尝试获�
 6. 等快速消费完积压数据之后，得恢复原先部署架构，重新用原先的consumer机器来消费消息
 
 ***
+
+- 2019.12.30  **双亲委派模型过程和好处**
+
+**好处：**
+
+1. **避免类的重复加载**，当父亲已经加载了该类时，就没有必要子ClassLoader再加载一次
+2. 主要是为了安全性，**避免Java核心api库的类被替换**，比如 String、Integer等。用户自己编写或从网络传递无法篡改。假设通过网络传递一个名为java.lang.Integer的类，通过双亲委托模式传递到启动类加载器，而启动类加载器在核心Java API发现这个类全限定名一样名字的类已被加载，会直接返回已加载过的Integer.class，这样便可以防止核心API库被随意篡改。
+
+**工作过程：**
+
+（1）当前类加载器从自己已经加载的类中查询是否此类已经加载，如果已经加载则直接返回原来已经加载的类。
+
+（2）如果没有找到，就去委托父类加载器去加载（如代码c = parent.loadClass(name, false)所示）。父类加载器也会采用同样的策略，查看自己已经加载过的类中是否包含这个类，有就返回，没有就委托父类的父类去加载，一直到启动类加载器。因为如果父加载器为空了，就代表使用启动类加载器作为父加载器去加载。
+
+（3）如果启动类加载器加载失败（例如在$JAVA_HOME/jre/lib里未查找到该class），则会抛出一个异常ClassNotFoundException，然后再调用当前加载器的findClass()方法进行加载。
+
+***
+
+- 2020.01.06  **线程池大小配置**
+
+一般需要根据任务类型来配置线程池大小：
+
+1、如果是 CPU 密集型任务，就需要尽量压榨 CPU，参考值可以设为 *NCPU* + 1
+
+2、如果是 IO 密集型任务，参考值可以设置为 2 * *NCPU*
+
+通过 Runtime.getRuntime().availableProcessors() 获得当前 CPU 个数（实际为JVM可用核心数 例如4c8t CPU 结果可能为8）
+
+***
+
+- 2020.01.09  **Mybatis返回内部类写法**
+
+1. 注意事项
+
+（1）内部类必须是静态内部类。
+（2）`xml`中内部类连接使用`$`。
+
+定义内部类(注意内部类需用static静态修饰)：
+
+```java
+@Data
+@ApiModel("园区设备分布 外层为设备类型列表 子列表为单种设备园区分布列表")
+public class DeviceProjectDistributionDTO extends BaseDTO {
+
+    @ApiModelProperty("设备类型编号")
+    private String deviceType;
+    @ApiModelProperty("设备类型名称")
+    private String deviceTypeName;
+    @ApiModelProperty("分布情况")
+    private List<Distribute> distributes;
+
+
+    //内部类
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @ApiModel("单种设备园区分布")
+    public static class Distribute {
+        //为了Mybatis查询完映射对应字段的构造函数 No constructor found in com.greentown.provider.device.model.dto.DeviceProjectDistributionDTO$Distribute matching [java.lang.Long, java.lang.String, java.lang.Long]
+
+        @ApiModelProperty(value = "园区id")
+        private Long projectId;
+        @ApiModelProperty(value = "园区名称")
+        private String projectName;
+        @ApiModelProperty(value = "设备类型编号",hidden = true)
+        private String deviceType;
+        @ApiModelProperty(value = "设备数量")
+        private Long count;
+    }
+
+}
+```
+
+mapper(注意内外部类之间连接是 $ 而不是.)
+
+```xml
+    <select id="deviceProjectDistribution" resultType="com.greentown.provider.device.model.dto.DeviceProjectDistributionDTO$Distribute">
+    </select>
+```
+
+
+
+***
+
