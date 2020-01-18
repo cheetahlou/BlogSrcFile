@@ -3316,3 +3316,212 @@ mapper(注意内外部类之间连接是 $ 而不是.)
 
 ***
 
+- 2020.01.13   **@TransactionalEventListener处理数据库事务提交成功后再执行操作**
+
+Spring事务监听机制---使用@TransactionalEventListener处理数据库事务提交成功后再执行操作（附：Spring4.2新特性讲解）
+
+```java
+@Slf4j
+@Service
+public class HelloServiceImpl implements HelloService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    @Transactional
+    @Override
+    public Object hello(Integer id) {
+        // 向数据库插入一条记录
+        String sql = "insert into user (id,name,age) values (" + id + ",'fsx',21)";
+        jdbcTemplate.update(sql);
+
+        // 发布一个自定义的事件~~~
+        applicationEventPublisher.publishEvent(new MyAfterTransactionEvent("我是和事务相关的事件，请事务提交后执行我~~~", id));
+        return "service hello";
+    }
+
+    @Slf4j
+    @Component
+    private static class MyTransactionListener {
+        @Autowired
+        private JdbcTemplate jdbcTemplate;
+
+        @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+        private void onHelloEvent(HelloServiceImpl.MyAfterTransactionEvent event) {
+            Object source = event.getSource();
+            Integer id = event.getId();
+
+            String query = "select count(1) from user where id = " + id;
+            Integer count = jdbcTemplate.queryForObject(query, Integer.class);
+            
+            // 可以看到 这里的count是1  它肯定是在上面事务提交之后才会执行的
+            log.info(source + ":" + count.toString()); //我是和事务相关的事件，请事务提交后执行我~~~:1
+        }
+    }
+
+
+    // 定一个事件，继承自ApplicationEvent 
+    private static class MyAfterTransactionEvent extends ApplicationEvent {
+
+        private Integer id;
+
+        public MyAfterTransactionEvent(Object source, Integer id) {
+            super(source);
+            this.id = id;
+        }
+
+        public Integer getId() {
+            return id;
+        }
+    }
+}
+```
+
+- 2020.01.17   **Jenkins多环境打包后设置spring.profiles.active=dev参数 & 读取spring环境配置 & Jenkins swagger -> Yapi**
+
+Jenkins打包完之后命令
+
+多台服务器，用到了远程拷贝命令scp
+
+```shell
+cd /ioc_dev
+
+scp -P 9034 -r sc-admin.jar 10.0.2.14:/app/sc-admin
+scp -P 9034 -r sc-admin.jar 10.0.2.15:/app/sc-admin 
+
+ssh -t 10.0.2.15 -p 9034  "/app/scripts/jar.sh sc-admin prod"
+```
+
+打包脚本 jar.sh
+
+```sh
+export JAVA_HOME=/usr/local/jdk1.8.0_111
+export JRE_HOME=$JAVA_HOME/jre
+export PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/lib
+export CLASSPATH=./:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib/rt.jar
+
+JAVA_OPTS=""
+
+BOOT_OPTS="-Dspring.profiles.active=dev"
+
+APP_NAME=$1
+#APP_PORT=$2
+ACTIVE_NAME=$2
+if  [ -n "${ACTIVE_NAME}" ] ;then
+  BOOT_OPTS="-Dspring.profiles.active=${ACTIVE_NAME}"
+fi
+echo "${BOOT_OPTS}"
+
+
+tpid=`ps -ef|grep "${APP_NAME}.jar" |grep -v grep|grep -v kill| wc -l`
+if [ ${tpid} -gt 0 ]; then
+    for i in `ps -ef|grep "${APP_NAME}.jar"| grep -v grep| grep -v '^sh$' | grep -v kill | awk '{print $2}'`; do kill -9 $i;echo "Kill Process: $i"; done
+else
+    echo 'Stop Success!'
+fi
+
+rm -f /app/${APP_NAME}/${APP_NAME}.pid
+
+#nohup java ${JAVA_OPTS} -jar ${BOOT_OPTS} /app/${APP_NAME}/${APP_NAME}.jar --server.port=${APP_PORT} > /app/${APP_NAME}/logs/${APP_NAME}.log 2>&1 &
+#nohup java -javaagent:/app/${APP_NAME}/agent/skywalking-agent.jar  -DSW_AGENT_NAMESPACE=IOC -DSW_AGENT_COLLECTOR_BACKEND_SERVICES=10.0.2.15:11800 -DSW_AGENT_NAME=${APP_NAME}   ${JAVA_OPTS} -jar ${BOOT_OPTS} /app/${APP_NAME}/${APP_NAME}.jar > /app/${APP_NAME}/logs/${APP_NAME}.log 2>&1 &
+nohup java -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -Xms1024m -Xmx1024m -Xmn256m -Xss256k -XX:SurvivorRatio=8 -XX:+UseConcMarkSweepGC ${JAVA_OPTS} -jar ${BOOT_OPTS} /app/${APP_NAME}/${APP_NAME}.jar > /app/${APP_NAME}/logs/${APP_NAME}.log 2>&1 &
+
+
+echo $! > /app/${APP_NAME}/${APP_NAME}.pid
+
+echo Start Success
+```
+
+可以看到最后 - jar执行jar包 `java xxx -jar ${BOOT_OPTS}`   ,`${BOOT_OPTS}`其实就是在前面定义的变量，初始化 `BOOT_OPTS="-Dspring.profiles.active=dev"`,环境参数默认值为dev，即Jenkins命令中`ssh -t 10.0.2.15 -p 9034  "/app/scripts/jar.sh sc-admin prod"`的prod不传默认为dev，如果传了，在shell脚本中 `ACTIVE_NAME=$2
+if  [ -n "${ACTIVE_NAME}" ] ;then
+  BOOT_OPTS="-Dspring.profiles.active=${ACTIVE_NAME}"
+fi` 
+
+环境参数`spring.profiles.active`设置为后面的参数值。并且由于java -jar xx后面的参数优先于配置文件，
+
+所以会将下面的 spring配置文件中的active运行时值改为相应的环境，比如如上的prod,uat,dev等等。
+
+```yml
+#config服务自身配置
+spring:
+  #应用名称
+  application:
+    name: sc-admin
+  profiles: 
+    active: local
+```
+
+
+
+### Java中获取当前环境
+
+接上，
+
+可以通过Spring中的`Environment`配置读取到`spring.profiles.active`值（ex: dev,prod,test），也就是通过Jenkins打包的当前环境。代码示例如下：
+
+```java
+import org.apache.commons.lang.ArrayUtils;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ActiveProfile implements ApplicationContextAware {
+
+    private static ApplicationContext context = null;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext)
+            throws BeansException {
+        ActiveProfile.context = applicationContext;
+    }
+
+    /**
+     * 获取当前环境参数  exp: dev,prod,test
+     *
+     * @return
+     */
+    public String getActiveProfile() {
+        String[] profiles = context.getEnvironment().getActiveProfiles();
+        if (!ArrayUtils.isEmpty(profiles)) {
+            return profiles[0];
+        }
+        return "";
+    }
+
+}
+```
+
+
+
+### 打包后Swagger上的内容同步到Yapi
+
+同样来看打包完之后Jenkins的命令如下：
+
+**Post-build Actions**
+
+```shell
+export NODE_HOME=/usr/local/node-v8.12.0-linux-x64
+export PATH=$NODE_HOME/bin:$PATH
+export NODE_PATH=$NODE_HOME/lib/node_modules:$PATH
+/app/scripts/jar.sh sc-ioc-api
+cd /app/scripts/ioc && sleep 1m && /usr/bin/yapi import
+```
+
+![](https://i.imgur.com/KuKxVHr.png)
+
+前面是node的打包命令，执行启动sh命令完成后，进入路径下查看有一json文件`yapi-import.json`，和jenkins命令结合起来就是执行  `/usr/bin/yapi import  yapi-import.json`导入，里面是导入的一些参数，如导入类型swagger、`file` = swagger上的接口列表请求地址（可通过F12查看）、`merge` = 合并接口时是否选择覆盖body，文件内容如下：
+
+```json
+{
+  "type": "swagger",
+  "token": "2ee50a85210fd99dd3d3",
+  "file": "https://smart-dev.gtdreamlife.com:18762/api/ioc/v2/api-docs?group=sc-ioc-api",
+  "merge": "good_not_update_req_body_other",
+  "server": "https://work.gtdreamlife.com:13000"
+}
+```
+
