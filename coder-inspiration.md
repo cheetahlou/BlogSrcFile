@@ -3525,3 +3525,131 @@ cd /app/scripts/ioc && sleep 1m && /usr/bin/yapi import
 }
 ```
 
+- 2019.2.8   **虚拟机栈栈帧结构**
+
+![img](https://images2015.cnblogs.com/blog/592743/201603/592743-20160321201532464-1956190499.png)
+
+- 2019.02.15    **volatile和双重检查锁定（DCL）单例**
+
+双重检查锁构造单例的代码：
+
+```java
+public class Singleton {
+    private volatile static Singleton singleton;
+
+    private Singleton() {}
+
+    public static Singleton getInstance() {
+        if (singleton == null) { // 1
+            synchronized(Singleton.class) {
+                if (singleton == null) {
+                    singleton = new Singleton(); // 2
+                }
+            }
+        }
+        return singleton;
+    }
+} 
+```
+
+实际上当程序执行到2处的时候，如果我们没有使用volatile关键字修饰变量singleton，就可能会造成错误。这是因为使用new关键字初始化一个对象的过程并不是一个原子的操作，它分成下面三个步骤进行：
+
+a. 给 singleton 分配内存
+ b. 调用 Singleton 的构造函数来初始化成员变量
+ c. 将 singleton 对象指向分配的内存空间（执行完这步 singleton 就为非 null 了）
+
+如果虚拟机存在指令重排序优化，则步骤b和c的顺序是无法确定的。如果A线程率先进入同步代码块并先执行了c而没有执行b，此时因为singleton已经非null。这时候线程B到了1处，判断singleton非null并将其返回使用，因为此时Singleton实际上还未初始化，自然就会出错。synchronized可以解决内存可见性，但是不能解决重排序问题。
+
+但是特别注意在jdk 1.5以前的版本使用了volatile的双检锁还是有问题的。其原因是Java 5以前的JMM（Java 内存模型）是存在缺陷的，即时将变量声明成volatile也不能完全避免重排序，主要是volatile变量前后的代码仍然存在重排序问题。这个volatile屏蔽重排序的问题在jdk 1.5 (JSR-133)中才得以修复，这时候jdk对volatile增强了语义，对volatile对象都会加入读写的内存屏障，以此来保证可见性，这时候2-3就变成了代码序而不会被CPU重排，所以在这之后才可以放心使用volatile。
+
+***
+
+### **PS:指令重排序**：
+
+在执行程序时，为了提高性能，编译器和处理器常常会对指令做重排序。重排序分3种类型：
+
+**（1）编译器优化的重排序。编译器在不改变单线程程序语义的前提下，可以重新安排语句的执行顺序。**
+
+编译期重排序的典型就是通过调整指令顺序，做到在不改变程序语义的前提下，`尽可能减少寄存器的读取、存储次数，充分复用寄存器的存储值`。
+
+**（2）指令级并行的重排序。现代处理器采用了指令级并行技术（Instruction-Level Parallelism，ILP）来将多条指令重叠执行。如果不存在数据依赖性，处理器可以改变语句对应机器指令的执行顺序。**
+
+**（3）内存系统的重排序。由于处理器使用缓存和读/写缓冲区，这使得加载和存储操作看上去可能是在乱序执行。**
+
+***
+
+- 2020.3.9  **从volatile的可见性到多核CPU的缓存架构**
+
+volatile变量不会被缓存在寄存器或者其他处理器不可见的地方。
+
+![Imgur](https://imgur.com/kXgljg7.jpg)
+
+CPU缓存- 维基百科，自由的百科全书
+zh.wikipedia.org › zh-hans › CPU缓存   也有相应描述。
+
+***
+
+**Object.wait() 和 Object.notify()**
+
+```java
+    private static void waitAndNotify() {
+
+        Thread waitThread = new Thread(() -> {
+            synchronized (waitAndNotify) {
+                System.out.println("I'm wait thread.");
+                try {
+                    System.out.println("waiting...");
+                    waitAndNotify.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("notified.");
+            }
+        }, "waitThread");
+
+        Thread notifyThread = new Thread(() -> {
+            synchronized (waitAndNotify) {
+                System.out.println("I'm notified thread.");
+                waitAndNotify.notify();
+                System.out.println("notify wait thread.");
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("after sleep 1 second.");
+            }
+        }, "notifyThread");
+
+        waitThread.start();
+        try {
+            Thread.sleep(20);// 确保 waitThread 在 notifyThread 之前执行
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        notifyThread.start();
+    }
+
+
+```
+
+输出：
+
+```
+I'm wait thread.
+waiting...
+I'm notified thread.
+notify wait thread.
+after sleep 1 second.
+notified.
+```
+
+关于 Object.wait() 和 Object.notify() 补充几点：
+
+（1）当前线程必须是 waitAndNotify monitor 的持有者，如果不是会抛 IllegalMonitorStateException；
+
+（2）调用 waitAndNotify.wait() 方法会将当前线程放入 waitAndNotify 对象的 `wait set` 中等待被唤醒；并且释放其持有的所有锁；
+
+（3）调用 waitAndNotify.notify() 方法会从 waitAndNotify 对象的 `wait set` 中唤醒一个线程（此例中的 waitThread），不过** waitThread 不会马上执行，它必须等待 notifyThread 释放 waitAndNotify 锁**；当 waitThread 再次获得 waitAndNotify 锁，才可以再次执行。也就解释了为什么 `notified.` 会在最后输出。
+
+***

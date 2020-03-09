@@ -30,6 +30,8 @@ tags:
 | exclusive   | adj. 独有的，独占的               | MESI缓存一致性协议“E”                |
 | coherent    | adj.一致的，连贯的                | cache coherency 缓存一致性           |
 | upvote      | vt.赞，点赞，赞成                 |                                      |
+| embed       | vt. 嵌入                          | be embedded in                       |
+|             |                                   |                                      |
 
 其他词汇：
 
@@ -38,9 +40,3 @@ tags:
 | 闭环 | 有始有终完成               |      |
 | 赋能 | 放权，赋予(员工等)更多权力 |      |
 |      |                            |      |
-
-0000 0000 1000
-
-0011 0010 0000
-
-0011 0010 1000

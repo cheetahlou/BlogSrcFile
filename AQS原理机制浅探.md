@@ -96,6 +96,7 @@ tryAcquire()尝试进行加锁
         for (;;) {
             Node oldTail = tail;
             if (oldTail != null) {
+                //有尾节点，即队列已经初始化
                 //设置node的前节点为tail
                 node.setPrevRelaxed(oldTail);
                 if (compareAndSetTail(oldTail, node)) {
@@ -104,6 +105,7 @@ tryAcquire()尝试进行加锁
                     return node;
                 }
             } else {
+                //如果此时tail为空则初始化队列，将头尾节点都设为空Node，之后继续循环进入if判断
                 initializeSyncQueue();
             }
         }
@@ -112,7 +114,8 @@ tryAcquire()尝试进行加锁
 /**
  * Initializes head and tail fields on first contention.
  * 当第一次争夺锁时初始化同步队列，也就是说，当第一个线程进来时队列未初始化，也不会初始化，因为此时没有竞争，
- * 看代码料想第一个之后的后续直接获取到锁的线程也是不会初始化同步队列
+ * 看代码料想第一个之后的后续直接获取到锁的线程也是不会初始化同步队列。
+ * 初始化队列时头尾节点都设为空Node
  */
 private final void initializeSyncQueue() {
     Node h;
@@ -120,6 +123,106 @@ private final void initializeSyncQueue() {
         tail = h;
 }
 ```
+
+
+
+```java
+
+    /*
+     * Various flavors of acquire, varying in exclusive/shared and
+     * control modes.  Each is mostly the same, but annoyingly
+     * different.  Only a little bit of factoring is possible due to
+     * interactions of exception mechanics (including ensuring that we
+     * cancel if tryAcquire throws exception) and other control, at
+     * least not without hurting performance too much.
+     */
+
+    /**
+     * Acquires in exclusive uninterruptible mode for thread already in
+     * queue. Used by condition wait methods as well as acquire.
+     *
+     * @param node the node
+     * @param arg the acquire argument
+     * @return {@code true} if interrupted while waiting
+     */
+    final boolean acquireQueued(final Node node, int arg) {
+        boolean interrupted = false;
+        try {
+            for (;;) {
+                final Node p = node.predecessor();
+                if (p == head && tryAcquire(arg)) {
+                    setHead(node);
+                    p.next = null; // help GC
+                    return interrupted;
+                }
+                if (shouldParkAfterFailedAcquire(p, node))
+                    interrupted |= parkAndCheckInterrupt();
+            }
+        } catch (Throwable t) {
+            cancelAcquire(node);
+            if (interrupted)
+                selfInterrupt();
+            throw t;
+        }
+    }
+
+    /**
+     * Checks and updates status for a node that failed to acquire.
+     * Returns true if thread should block. This is the main signal
+     * control in all acquire loops.  Requires that pred == node.prev.
+     *
+     * @param pred node's predecessor holding status
+     * @param node the node
+     * @return {@code true} if thread should block
+     * 返回线程是否需要被阻塞等待，清除中间已取消的节点，确认前节点状态为signal时返回true表示当前Node的线程可以被park等待后续唤醒
+     * 方法中可能改变pred的waitStatus但不会改变当前node的等待状态
+     */
+    private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
+        //注意！是pred前节点的等待状态 用以判断前节点状态如果是signal的话，当前线程可以安心park等待唤醒。
+        // 初始化等待队列后第一次进入该方法时pred的waitStatus一定是初始化值0，由下一个入队的节点来更改为SIGNAL，
+        // 其他节点同理都由后一个节点来更新前节点的等待状态
+        int ws = pred.waitStatus;
+        if (ws == Node.SIGNAL)
+            //前节点为SIGNAL状态，则返回当前Node可以被park线程
+            /*
+             * This node has already set status asking a release
+             * to signal it, so it can safely park.
+             */
+            return true;
+        if (ws > 0) {
+            /*
+             * Predecessor was cancelled. Skip over predecessors and
+             * indicate retry.
+             */
+            //前节点为已取消状态，则循环清除前面所有的已取消节点，后再retry
+            do {
+                node.prev = pred = pred.prev;
+            } while (pred.waitStatus > 0);
+            pred.next = node;
+        } else {
+            /*
+             * waitStatus must be 0 or PROPAGATE.  Indicate that we
+             * need a signal, but don't park yet.  Caller will need to
+             * retry to make sure it cannot acquire before parking.
+             * 进入else时ws一定为初始化状态0或者PROPAGATE，更改前节点等待状态在下一次循环时确认拿不到锁后对当前线程执行park
+             * 有可能的情况比如有线程占用锁正在运行，head节点为队列初始化节点，本次将head的ws改为SIGNAL后，下次acquireQueued()方法
+             * 循环有可能刚好锁被释放当前节点直接CAS获取到锁不再第二次进入本方法，即本来要park的现在CAS一次后有可能直接获取锁
+             */
+            pred.compareAndSetWaitStatus(ws, Node.SIGNAL);
+        }
+        return false;
+    }
+```
+
+
+
+AQS源码阅读总结：
+
+自旋处做if else判断，首次进入更改满足条件（做初始化什么的），第二次进入循环时满足条件进入if判断。或某一次更改判断条件后之后的循环中进入另一段逻辑。如addWaiter()。
+
+LockSupport.park()方法是使线程进入无限等待（WAITING状态），当调用unpark()或notify()时解除等待进入运行态（RUNNABLE）等待CPU时间片调度
+
+![线程的状态转换](https://imgedu.lagou.com/add0a9690e0c4196b483f1ff65f77622.jpg)
 
 **参考文章：**
 
