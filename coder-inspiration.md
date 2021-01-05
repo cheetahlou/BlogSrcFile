@@ -2,6 +2,8 @@ title: 程序员随想
 date: 2019-02-01 23:37:00
 tags: 
 
+- Java
+
 
 
 ## 程序员随想
@@ -3081,6 +3083,8 @@ public static Pair<Point, Double> getNearestPointAndDistance(Point point, Point[
  b. 查询的结束返回的是少量的结果集；
  c. order by 子句中使用了该列。
 
+InnoDB的数据文件本身就是索引文件。MyISAM索引文件和数据文件是分离的，索引文件仅保存数据记录的地址
+
 聚集索引图示：
 
 ![](https://i.imgur.com/wa5pX6S.jpg)
@@ -3090,6 +3094,8 @@ public static Pair<Point, Double> getNearestPointAndDistance(Point point, Point[
 ![](https://i.imgur.com/EYn7SpR.jpg)
 
 聚集索引确定表中数据的物理顺序。聚集索引类似于电话簿，后者按姓氏排列数据。由于聚集索引规定数据在表中的物理存储顺序，因此一个表只能包含一个聚集索引。但该索引可以包含多个列（组合索引），就像电话簿按姓氏和名字进行组织一样。
+
+![image-20191031154808835](https://d326g9ccfagnrm.cloudfront.net/img/assets/image-20191031154808835.png)
 
 ***
 
@@ -3131,9 +3137,31 @@ public static Pair<Point, Double> getNearestPointAndDistance(Point point, Point[
 3. 类方法解析
 4. 接口方法解析
 
+### 5.初始化
 
+通过程序制定的主观计划去初始化类变量和其他资源，或者说 初始化阶段是执行类构造器＜clinit＞（）方法的过程。
 
+类构造器方法<clinit>方法是由编译器自动收集类中的类变量的赋值动作和静态语句块中的语句（static{}）按语句顺序合并产生的。虚拟机保证先执行父类的<clinit>方法，也就意味着父类中定义的静态语句块要优先于子 类的变量赋值操作。不同的是，父接口的初始化要等到父接口变量使用时。
 
+虚拟机会保证一个类的＜clinit＞（）方法在多线程环境中被正确地加锁、同步，如果多 个线程同时去初始化一个类，那么只会有一个线程去执行这个类的＜clinit＞（）方法，阻塞其他线程。
+
+```java
+//由于父类先执行完<clinit>，所以A的值为2而不是1
+static class Parent{
+public static int A=1；
+static{
+A=2；
+}
+}
+static class Sub extends Parent{
+public static int B=A；
+}
+public static void main（String[]args）{
+System.out.println（Sub.B）；
+}
+```
+
+参考自《Java并发编程的艺术》 虚拟机类加载机制 - 类加载过程
 
 ***
 
@@ -3210,3 +3238,1767 @@ acquireQueued()队列循环获取锁方法，当前一节点为head时尝试获�
 6. 等快速消费完积压数据之后，得恢复原先部署架构，重新用原先的consumer机器来消费消息
 
 ***
+
+- 2019.12.30  **双亲委派模型过程和好处**
+
+**好处：**
+
+1. **避免类的重复加载**，当父亲已经加载了该类时，就没有必要子ClassLoader再加载一次
+2. 主要是为了安全性，**避免Java核心api库的类被替换**，比如 String、Integer等。用户自己编写或从网络传递无法篡改。假设通过网络传递一个名为java.lang.Integer的类，通过双亲委托模式传递到启动类加载器，而启动类加载器在核心Java API发现这个类全限定名一样名字的类已被加载，会直接返回已加载过的Integer.class，这样便可以防止核心API库被随意篡改。
+
+**工作过程：**
+
+（1）当前类加载器从自己已经加载的类中查询是否此类已经加载，如果已经加载则直接返回原来已经加载的类。
+
+（2）如果没有找到，就去委托父类加载器去加载（如代码c = parent.loadClass(name, false)所示）。父类加载器也会采用同样的策略，查看自己已经加载过的类中是否包含这个类，有就返回，没有就委托父类的父类去加载，一直到启动类加载器。因为如果父加载器为空了，就代表使用启动类加载器作为父加载器去加载。
+
+（3）如果启动类加载器加载失败（例如在$JAVA_HOME/jre/lib里未查找到该class），则会抛出一个异常ClassNotFoundException，然后再调用当前加载器的findClass()方法进行加载。
+
+***
+
+- 2020.01.06  **线程池大小配置**
+
+一般需要根据任务类型来配置线程池大小：
+
+1、如果是 CPU 密集型任务，就需要尽量压榨 CPU，参考值可以设为 *NCPU* + 1
+
+2、如果是 IO 密集型任务，参考值可以设置为 2 * *NCPU*
+
+通过 Runtime.getRuntime().availableProcessors() 获得当前 CPU 个数（实际为JVM可用核心数 例如4c8t CPU 结果可能为8）
+
+***
+
+- 2020.01.09  **Mybatis返回内部类写法**
+
+1. 注意事项
+
+（1）内部类必须是静态内部类。
+（2）`xml`中内部类连接使用`$`。
+
+定义内部类(注意内部类需用static静态修饰)：
+
+```java
+@Data
+@ApiModel("园区设备分布 外层为设备类型列表 子列表为单种设备园区分布列表")
+public class DeviceProjectDistributionDTO extends BaseDTO {
+
+    @ApiModelProperty("设备类型编号")
+    private String deviceType;
+    @ApiModelProperty("设备类型名称")
+    private String deviceTypeName;
+    @ApiModelProperty("分布情况")
+    private List<Distribute> distributes;
+
+
+    //内部类
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @ApiModel("单种设备园区分布")
+    public static class Distribute {
+        //为了Mybatis查询完映射对应字段的构造函数 No constructor found in com.greentown.provider.device.model.dto.DeviceProjectDistributionDTO$Distribute matching [java.lang.Long, java.lang.String, java.lang.Long]
+
+        @ApiModelProperty(value = "园区id")
+        private Long projectId;
+        @ApiModelProperty(value = "园区名称")
+        private String projectName;
+        @ApiModelProperty(value = "设备类型编号",hidden = true)
+        private String deviceType;
+        @ApiModelProperty(value = "设备数量")
+        private Long count;
+    }
+
+}
+```
+
+mapper(注意内外部类之间连接是 $ 而不是.)
+
+```xml
+    <select id="deviceProjectDistribution" resultType="com.greentown.provider.device.model.dto.DeviceProjectDistributionDTO$Distribute">
+    </select>
+```
+
+
+
+***
+
+- 2020.01.13   **@TransactionalEventListener处理数据库事务提交成功后再执行操作**
+
+Spring事务监听机制---使用@TransactionalEventListener处理数据库事务提交成功后再执行操作（附：Spring4.2新特性讲解）
+
+```java
+@Slf4j
+@Service
+public class HelloServiceImpl implements HelloService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    @Transactional
+    @Override
+    public Object hello(Integer id) {
+        // 向数据库插入一条记录
+        String sql = "insert into user (id,name,age) values (" + id + ",'fsx',21)";
+        jdbcTemplate.update(sql);
+
+        // 发布一个自定义的事件~~~
+        applicationEventPublisher.publishEvent(new MyAfterTransactionEvent("我是和事务相关的事件，请事务提交后执行我~~~", id));
+        return "service hello";
+    }
+
+    @Slf4j
+    @Component
+    private static class MyTransactionListener {
+        @Autowired
+        private JdbcTemplate jdbcTemplate;
+
+        @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+        private void onHelloEvent(HelloServiceImpl.MyAfterTransactionEvent event) {
+            Object source = event.getSource();
+            Integer id = event.getId();
+
+            String query = "select count(1) from user where id = " + id;
+            Integer count = jdbcTemplate.queryForObject(query, Integer.class);
+            
+            // 可以看到 这里的count是1  它肯定是在上面事务提交之后才会执行的
+            log.info(source + ":" + count.toString()); //我是和事务相关的事件，请事务提交后执行我~~~:1
+        }
+    }
+
+
+    // 定一个事件，继承自ApplicationEvent 
+    private static class MyAfterTransactionEvent extends ApplicationEvent {
+
+        private Integer id;
+
+        public MyAfterTransactionEvent(Object source, Integer id) {
+            super(source);
+            this.id = id;
+        }
+
+        public Integer getId() {
+            return id;
+        }
+    }
+}
+```
+
+- 2020.01.17   **Jenkins多环境打包后设置spring.profiles.active=dev参数 & 读取spring环境配置 & Jenkins swagger -> Yapi**
+
+Jenkins打包完之后命令
+
+多台服务器，用到了远程拷贝命令scp
+
+```shell
+cd /ioc_dev
+
+scp -P 9034 -r sc-admin.jar 10.0.2.14:/app/sc-admin
+scp -P 9034 -r sc-admin.jar 10.0.2.15:/app/sc-admin 
+
+ssh -t 10.0.2.15 -p 9034  "/app/scripts/jar.sh sc-admin prod"
+```
+
+打包脚本 jar.sh
+
+```sh
+export JAVA_HOME=/usr/local/jdk1.8.0_111
+export JRE_HOME=$JAVA_HOME/jre
+export PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/lib
+export CLASSPATH=./:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib/rt.jar
+
+JAVA_OPTS=""
+
+BOOT_OPTS="-Dspring.profiles.active=dev"
+
+APP_NAME=$1
+#APP_PORT=$2
+ACTIVE_NAME=$2
+if  [ -n "${ACTIVE_NAME}" ] ;then
+  BOOT_OPTS="-Dspring.profiles.active=${ACTIVE_NAME}"
+fi
+echo "${BOOT_OPTS}"
+
+
+tpid=`ps -ef|grep "${APP_NAME}.jar" |grep -v grep|grep -v kill| wc -l`
+if [ ${tpid} -gt 0 ]; then
+    for i in `ps -ef|grep "${APP_NAME}.jar"| grep -v grep| grep -v '^sh$' | grep -v kill | awk '{print $2}'`; do kill -9 $i;echo "Kill Process: $i"; done
+else
+    echo 'Stop Success!'
+fi
+
+rm -f /app/${APP_NAME}/${APP_NAME}.pid
+
+#nohup java ${JAVA_OPTS} -jar ${BOOT_OPTS} /app/${APP_NAME}/${APP_NAME}.jar --server.port=${APP_PORT} > /app/${APP_NAME}/logs/${APP_NAME}.log 2>&1 &
+#nohup java -javaagent:/app/${APP_NAME}/agent/skywalking-agent.jar  -DSW_AGENT_NAMESPACE=IOC -DSW_AGENT_COLLECTOR_BACKEND_SERVICES=10.0.2.15:11800 -DSW_AGENT_NAME=${APP_NAME}   ${JAVA_OPTS} -jar ${BOOT_OPTS} /app/${APP_NAME}/${APP_NAME}.jar > /app/${APP_NAME}/logs/${APP_NAME}.log 2>&1 &
+nohup java -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -Xms1024m -Xmx1024m -Xmn256m -Xss256k -XX:SurvivorRatio=8 -XX:+UseConcMarkSweepGC ${JAVA_OPTS} -jar ${BOOT_OPTS} /app/${APP_NAME}/${APP_NAME}.jar > /app/${APP_NAME}/logs/${APP_NAME}.log 2>&1 &
+
+
+echo $! > /app/${APP_NAME}/${APP_NAME}.pid
+
+echo Start Success
+```
+
+可以看到最后 - jar执行jar包 `java xxx -jar ${BOOT_OPTS}`   ,`${BOOT_OPTS}`其实就是在前面定义的变量，初始化 `BOOT_OPTS="-Dspring.profiles.active=dev"`,环境参数默认值为dev，即Jenkins命令中`ssh -t 10.0.2.15 -p 9034  "/app/scripts/jar.sh sc-admin prod"`的prod不传默认为dev，如果传了，在shell脚本中 `ACTIVE_NAME=$2
+if  [ -n "${ACTIVE_NAME}" ] ;then
+  BOOT_OPTS="-Dspring.profiles.active=${ACTIVE_NAME}"
+fi` 
+
+环境参数`spring.profiles.active`设置为后面的参数值。并且由于java -jar xx后面的参数优先于配置文件，
+
+所以会将下面的 spring配置文件中的active运行时值改为相应的环境，比如如上的prod,uat,dev等等。
+
+```yml
+#config服务自身配置
+spring:
+  #应用名称
+  application:
+    name: sc-admin
+  profiles: 
+    active: local
+```
+
+
+
+### Java中获取当前环境
+
+接上，
+
+可以通过Spring中的`Environment`配置读取到`spring.profiles.active`值（ex: dev,prod,test），也就是通过Jenkins打包的当前环境。代码示例如下：
+
+```java
+import org.apache.commons.lang.ArrayUtils;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ActiveProfile implements ApplicationContextAware {
+
+    private static ApplicationContext context = null;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext)
+            throws BeansException {
+        ActiveProfile.context = applicationContext;
+    }
+
+    /**
+     * 获取当前环境参数  exp: dev,prod,test
+     *
+     * @return
+     */
+    public String getActiveProfile() {
+        String[] profiles = context.getEnvironment().getActiveProfiles();
+        if (!ArrayUtils.isEmpty(profiles)) {
+            return profiles[0];
+        }
+        return "";
+    }
+
+}
+```
+
+
+
+### 打包后Swagger上的内容同步到Yapi
+
+同样来看打包完之后Jenkins的命令如下：
+
+**Post-build Actions**
+
+```shell
+export NODE_HOME=/usr/local/node-v8.12.0-linux-x64
+export PATH=$NODE_HOME/bin:$PATH
+export NODE_PATH=$NODE_HOME/lib/node_modules:$PATH
+/app/scripts/jar.sh sc-ioc-api
+cd /app/scripts/ioc && sleep 1m && /usr/bin/yapi import
+```
+
+![](https://i.imgur.com/KuKxVHr.png)
+
+前面是node的打包命令，执行启动sh命令完成后，进入路径下查看有一json文件`yapi-import.json`，和jenkins命令结合起来就是执行  `/usr/bin/yapi import  yapi-import.json`导入，里面是导入的一些参数，如导入类型swagger、`file` = swagger上的接口列表请求地址（可通过F12查看）、`merge` = 合并接口时是否选择覆盖body，文件内容如下：
+
+```json
+{
+  "type": "swagger",
+  "token": "2ee50a85210fd99dd3d3",
+  "file": "https://smart-dev.gtdreamlife.com:18762/api/ioc/v2/api-docs?group=sc-ioc-api",
+  "merge": "good_not_update_req_body_other",
+  "server": "https://work.gtdreamlife.com:13000"
+}
+```
+
+- 2019.2.8   **虚拟机栈栈帧结构**
+
+![img](https://images2015.cnblogs.com/blog/592743/201603/592743-20160321201532464-1956190499.png)
+
+- 2019.02.15    **volatile和双重检查锁定（DCL）单例**
+
+双重检查锁构造单例的代码：
+
+```java
+public class Singleton {
+    private volatile static Singleton singleton;
+
+    private Singleton() {}
+
+    public static Singleton getInstance() {
+        if (singleton == null) { // 1 第一次检查 
+            synchronized(Singleton.class) {
+                if (singleton == null) {     //第二次检查 加了为了防止多个线程第一次检查通过后先后进入同步块
+                    singleton = new Singleton(); //  用volatile修饰 对创建对象时二三步初始化和引用赋值禁止指令重排序
+                }
+            }
+        }
+        return singleton;
+    }
+} 
+```
+
+实际上当程序执行到2处的时候，如果我们没有使用volatile关键字修饰变量singleton，就可能会造成错误。这是因为使用new关键字初始化一个对象的过程并不是一个原子的操作，它分成下面三个步骤进行：
+
+a. 给 singleton 分配内存
+ b. 执行初始化，调用 Singleton 的构造函数来初始化成员变量
+ c. 将对象引用赋值给变量，将 singleton 对象指向分配的内存空间（执行完这步 singleton 就为非 null 了）
+
+![img](https://i.loli.net/2020/05/15/1BHahPcYVjCiGqz.png)
+
+
+
+如果虚拟机存在指令重排序优化，则步骤b和c的顺序是无法确定的。如果A线程率先进入同步代码块并先执行了c而没有执行b，此时因为singleton已经非null。这时候线程B到了1处，判断singleton非null并将其返回使用，因为此时Singleton实际上还未初始化，自然就会出错。synchronized可以解决内存可见性，但是不能解决重排序问题。
+
+**所以可以使用volatile关键字禁止创建对象过程中的第二三步重排序**
+
+但是特别注意在jdk 1.5以前的版本使用了volatile的双检锁还是有问题的。其原因是Java 5以前的JMM（Java 内存模型）是存在缺陷的，即时将变量声明成volatile也不能完全避免重排序，主要是volatile变量前后的代码仍然存在重排序问题。这个volatile屏蔽重排序的问题在jdk 1.5 (JSR-133)中才得以修复，这时候jdk对volatile增强了语义，**对volatile对象都会加入读写的内存屏障，以此来保证可见性，这时候2-3就变成了代码序而不会被CPU重排**，所以在这之后才可以放心使用volatile。
+
+***
+
+### **PS:指令重排序**：
+
+在执行程序时，为了提高性能，编译器和处理器常常会对指令做重排序。重排序分3种类型：
+
+**（1）编译器优化的重排序。编译器在不改变单线程程序语义的前提下，可以重新安排语句的执行顺序。**
+
+编译期重排序的典型就是通过调整指令顺序，做到在不改变程序语义的前提下，`尽可能减少寄存器的读取、存储次数，充分复用寄存器的存储值`。
+
+**（2）指令级并行的重排序。现代处理器采用了指令级并行技术（Instruction-Level Parallelism，ILP）来将多条指令重叠执行。如果不存在数据依赖性，处理器可以改变语句对应机器指令的执行顺序。**
+
+**（3）内存系统的重排序。由于处理器使用缓存和读/写缓冲区，这使得加载和存储操作看上去可能是在乱序执行。**
+
+***
+
+- 2020.3.9  **从volatile的可见性到多核CPU的缓存架构**
+
+volatile变量不会被缓存在寄存器或者其他处理器不可见的地方。
+
+![Imgur](https://imgur.com/kXgljg7.jpg)
+
+CPU缓存- 维基百科，自由的百科全书
+zh.wikipedia.org › zh-hans › CPU缓存   也有相应描述。
+
+***
+
+**Object.wait() 和 Object.notify()**
+
+```java
+    private static void waitAndNotify() {
+
+        Thread waitThread = new Thread(() -> {
+            synchronized (waitAndNotify) {
+                System.out.println("I'm wait thread.");
+                try {
+                    System.out.println("waiting...");
+                    waitAndNotify.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("notified.");
+            }
+        }, "waitThread");
+
+        Thread notifyThread = new Thread(() -> {
+            synchronized (waitAndNotify) {
+                System.out.println("I'm notified thread.");
+                waitAndNotify.notify();
+                System.out.println("notify wait thread.");
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("after sleep 1 second.");
+            }
+        }, "notifyThread");
+
+        waitThread.start();
+        try {
+            Thread.sleep(20);// 确保 waitThread 在 notifyThread 之前执行
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        notifyThread.start();
+    }
+
+
+```
+
+输出：
+
+```
+I'm wait thread.
+waiting...
+I'm notified thread.
+notify wait thread.
+after sleep 1 second.
+notified.
+```
+
+关于 Object.wait() 和 Object.notify() 补充几点：
+
+（1）当前线程必须是 waitAndNotify monitor 的持有者，如果不是会抛 IllegalMonitorStateException；
+
+（2）调用 waitAndNotify.wait() 方法会将当前线程放入 waitAndNotify 对象的 `wait set` 中等待被唤醒；并且释放其持有的所有锁；
+
+（3）调用 waitAndNotify.notify() 方法会从 waitAndNotify 对象的 `wait set` 中唤醒一个线程（此例中的 waitThread），不过** waitThread 不会马上执行，它必须等待 notifyThread 释放 waitAndNotify 锁**；当 waitThread 再次获得 waitAndNotify 锁，才可以再次执行。也就解释了为什么 `notified.` 会在最后输出。
+
+***
+
+- 2020.03.16    **MySQL 索引B+树杂记**
+
+1、为什么选择B+树作为索引存储结构而不是B-树或者红黑树？
+
+> A：   1. 为什么不是红黑树，因为第一索引文件一般也较大，数据存储在磁盘上需要进行磁盘IO。红黑树也是二叉树，虽然可以有效防止退化成链表，但是同样数据下节点出度（degree）较小只有2，所以树的高度（对应检索次数）h明显要深的多。由于逻辑上很近的节点（父子）物理上可能很远，无法利用局部性，所以红黑树的I/O渐进复杂度也为O(h)，效率明显比B-Tree差很多。      2.为什么不是B-Tree，因为主要B+树非叶子节点去掉了data域，出度更大，一次磁盘IO读取的数据更多，因此也拥有更好的性能。B+Tree更适合外存索引，原因和内节点出度d有关。从上面分析可以看到，d越大索引的性能越好，而出度的上限取决于节点内key和data的大小：
+>
+> dmax=floor(pagesize/(keysize+datasize+pointsize))dmax=floor(pagesize/(keysize+datasize+pointsize))
+>
+> floor表示向下取整。由于B+Tree内节点去掉了data域，因此可以拥有更大的出度，拥有更好的性能。
+
+2、为什么InnoDB一定要求表有主键？
+
+> A：因为InnoDB本身数据文件要按照主键聚集。InnoDB使用聚集索引，数据记录本身被存于主索引（一颗B+Tree）的叶子节点上。这就要求同一个叶子节点内（大小为一个内存页或磁盘页）的各条数据记录按主键顺序存放
+
+3、为什么不建议使用过长的字段作为主键？
+
+> A：因为所有辅助索引都引用主索引，过长的主索引会令辅助索引变得过大
+
+4、为什么在InnoDB中推荐自增（单调）列作为主键列？
+
+> A：因为InnoDB数据文件本身是一颗B+Tree，非单调的主键会造成在插入新记录时数据文件为了维持B+Tree的特性而频繁的分裂调整，十分低效，而使用自增字段作为主键则是一个很好的选择。
+
+
+
+5、explain命令时常看哪几列
+
+> A：首先关注rows扫描行数，这是最直观的。其实看key 和possible_keys的使用情况
+
+***
+
+- 2020.03.17   **限流算法 - 漏桶和令牌桶**
+
+- 缓存：说白了，就是让数据尽早进入缓存，离程序近一点，不要大量频繁的访问DB。
+- 降级：如果不是核心链路，那么就把这个服务降级掉。打个比喻，现在的APP都讲究千人千面，拿到数据后，做个性化排序展示，如果在大流量下，这个排序就可以降级掉！
+- 限流：大家都知道，北京地铁早高峰，地铁站都会做一件事情，就是限流了！想法很直接，就是想在一定时间内把请求限制在一定范围内，保证系统不被冲垮，同时尽可能提升系统的吞吐量
+
+### 漏桶
+
+如图所示,漏桶就是一个固定的桶,桶底有个漏洞,进水速率不用管不用管,有多少水不用管,反正就这个孔里漏出去! 标准来说,就是不管多少请求,最后给服务的请求数量的速率是恒定的!多余的请求将 “抛弃掉”(抛弃并不代表直接丢掉不处理..)
+
+[![img](http://go-blog.iphpt.com/e7afad0707d78ae63450d21fc29a09aa.jpg)](http://go-blog.iphpt.com/e7afad0707d78ae63450d21fc29a09aa.jpg)
+
+伪代码:
+
+```php
+class LeakyDemo{
+
+    private  $timeStamp;
+    public  $capacity;// 桶的容量
+    public  $rate; // 水漏出的速度
+    public  $water;// 当前水量(当前累积请求数)
+
+
+    public function __construct()
+    {
+        $this->timeStamp = time();
+    }
+    public function grant(){
+        $now = time();
+        $this->water = max(0,$this->water - ($now-$this->timeStamp)*$this->rate);// 先执行漏水，计算剩余水量
+        $this->timeStamp = $now;
+        if(($this->water+1) < $this->capacity){
+            // 尝试加水,并且水还未满
+            $this->water+=1;
+            return true;
+        }else{
+            // 水满，拒绝加水
+            return false;
+        }
+
+    }
+
+}
+```
+
+### 令牌桶
+
+开始看图,没有仔细看,没懂..后来看了概念,明白了!
+
+其实是这样的!先以一个恒定的速率生成令牌,把令牌放到桶里!然后每进来一个请求,每个请求去桶里找,有没有令牌,如果有令牌,则”拿着”令牌,继续下一步处理!如果桶里没有令牌了,则这个处理可以”抛弃掉”
+
+令牌桶的好处就是,可以允许匀速,也允许范围内的突发处理!
+
+类似于 我桶容量是100! 这时候1s一个请求,令牌速度也是1s一个!那么速率是恒定的, 突然,来了100个请求,发现桶里有100个令牌,那么这100个可以立即处理了!这时速率是100!
+
+[![img](http://go-blog.iphpt.com/7c7493ad5bb7f56a2ebec871ca90bb20.jpg)](http://go-blog.iphpt.com/7c7493ad5bb7f56a2ebec871ca90bb20.jpg)
+
+伪代码:
+
+```php
+class TokenBucketDemo{
+    private  $timeStamp;
+    public  $capacity;// 桶的容量
+    public  $rate; // 令牌放入的速度
+    public  $tokens;// 当前令牌的数量
+
+
+    public function __construct()
+    {
+        $this->timeStamp = time();
+    }
+    public  function grant(){
+        $now=time();
+        $this->tokens=min(0,$this->tokens+($now-$this->timeStamp)*$this->rate);
+        $this->timeStamp=$now;
+        if($this->tokens<1){
+            // 若不到1个令牌,则拒绝
+            return false;
+        }else{
+            // 还有令牌，领取令牌
+            $this->tokens -= 1;
+            return true;
+        }
+
+    }
+
+}
+```
+
+***
+
+- 2020.03.18   **B树定义**
+
+### 维基百科定义B树：
+
+根据 Knuth 的定义，一个 *m* 阶的B树是一个有以下属性的树：
+
+1. 每一个节点最多有 *m* 个子节点
+2. 每一个非叶子节点（除根节点）最少有 ⌈*m*/2⌉ 个子节点
+3. 如果根节点不是叶子节点，那么它至少有两个子节点
+4. 有 *k* 个子节点的非叶子节点拥有 *k* − 1 个键
+5. 所有的叶子节点都在同一层
+
+每一个内部节点的键将节点的子树分开。例如，如果一个内部节点有3个子节点（子树），那么它就必须有两个键： *a*1 和 *a*2 。左边子树的所有值都必须小于 *a*1 ，中间子树的所有值都必须在 *a*1 和*a*2 之间，右边子树的所有值都必须大于 *a*2 。
+
+![img](https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/B-tree.svg/400px-B-tree.svg.png)
+
+
+
+
+
+**Q：为什么B树的每一个非叶子节点（除根节点）最少有 ⌈*m*/2⌉ 个子节点，即key数量为什么至少为ceil(m/2)-1？ ceil 向上取整**
+
+**A**：一半的限制一是为了保证存储密度，二是避免树结构退化，保证其在磁盘存储器中的存储优势。
+
+正因为 b 树是一个稳定的多叉结构，每一个节点有多个 key 和分支。在磁盘存储器这样的 查找速度慢(硬件条件限制)，以存储块(一个相对较大的块)为单位读取的 硬件结构中，才有了明显的优势。
+
+B-Tree核心特征是实现**平衡**, **多路** **查找树**
+
+这三个词每个词都是重点, 需要理解其内涵. 平衡意味着, 树的所有路径高度都要一致, 多路意味着结点的出度>=2(实际上往往是成百上千的), 查找树意味着结点之间, 结点内部是有序的(类似二分查找树)
+
+一切设计的目的都是为了功能服务, 这里B树的唯一功能就是提高访问磁盘的效率.
+
+***
+
+- 2020.03.20     **Java相关资料/学习网站**
+
+[**JavaFamily**](https://github.com/AobingJava/JavaFamily)：由一个在互联网苟且偷生的男人维护的GitHub
+
+**[CodeGym](https://link.zhihu.com/?target=https%3A//codegym.cc/)** ：一个在线Java编程课程，80%的内容是练习，适合一窍不通的入门者。
+
+**[Wibit Online Java Courses](https://link.zhihu.com/?target=https%3A//www.wibit.net/course/Java)** ：一个非常有趣的编程学习网站，各种生动的动画形象能让人忘记学习的枯燥。在线视频学习，非常适合零基础。
+
+**[stanford CS106A: Programming Methodology](https://link.zhihu.com/?target=https%3A//see.stanford.edu/Course/CS106A)** ：斯坦福经典课程系列，完全没有编程经验，想学Java语言的，可以看看这个课程。
+
+**[Bloombenc](https://link.zhihu.com/?target=https%3A//bloombench.com/app/course/details/java-programming)** ：一个在线交互式学习平台，老师可以根据你的学习能力和节奏修改他们的教学方法，还可以在平台上编码。
+
+[**Imooc**](https://www.imooc.com/article)：慕课网，我大学的C语言就是在这里看的
+
+**[CodeAcademy](https://link.zhihu.com/?target=https%3A//www.codecademy.com/)** ：比较实用的Java在线课程，注重的是在找工作时非常有用的技术能力。
+
+**[PLURALSIGHT](https://link.zhihu.com/?target=https%3A//www.pluralsight.com/browse/software-development/java)**：整合了很多Java的视频课程，部分免费，部分付费，可以根据自己的需要挑选。
+
+**[Lynda Online Java Training Videos](https://link.zhihu.com/?target=http%3A//www.lynda.com/Java-training-tutorials/1077-0.html)**：Java进阶课程，包括如何使用JDBC来集成MySQL数据库，Reflection API，管理文件和目录等。
+
+**[九章基础算法班（Java）](https://link.zhihu.com/?target=https%3A//www.jiuzhang.com/course/23/%3Fsource%3Dzhihuanswer)**：中文在线互动课，随时开始学习。
+
+**[BeginnersBook](https://link.zhihu.com/?target=https%3A//beginnersbook.com/java-tutorial-for-beginners-with-examples/)**：Java初学者免费教程，有稍微一些编程基础之后，可以跟着文档里的代码练习。
+
+**[docs.oracle.com/javase/tuto…](https://link.zhihu.com/?target=https%3A//docs.oracle.com/javase/tutorial/)**：官方Java指南，对了解几乎所有的java技术特性都非常有帮助。
+
+**[JournalDev](https://link.zhihu.com/?target=https%3A//www.journaldev.com/java)**：Java相关教程及问答
+
+**[JavaWorld](https://link.zhihu.com/?target=http%3A//www.javaworld.com/)**：最早的一个Java站点，每周更新Java技术文章。
+
+**[developer.com/java](https://link.zhihu.com/?target=http%3A//www.developer.com/java)** ：由[Gamelan.com](https://link.zhihu.com/?target=http%3A//Gamelan.com) 维护的Java技术文章网站。
+
+**[IBM Developerworks技术网站](https://link.zhihu.com/?target=http%3A//www.ibm.com/developerworks/java)**：IBM的Develperworks技术网站，这是其中的Java技术主页
+
+***
+
+**值传递OR引用传递？**
+
+Java中只有值传递，并没有引用传递。值传递，不论传递的参数类型是值类型还是引用类型，都会在调用**栈**上创建一个形参的副本。不同的是，对于值类型来说，复制的就是整个原始值的复制。而对于引用类型来说，由于在调用栈中只存储对象的引用，因此复制的只是这个引用，而不是原始对象。
+
+![file](https://user-gold-cdn.xitu.io/2020/1/8/16f857180d55db3c?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+
+![file](https://user-gold-cdn.xitu.io/2020/1/8/16f85718323f6ae6?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+
+***
+
+- 2020.04.01   **乐观锁和悲观锁**
+
+**悲观锁**，比如数据库中的行锁(select xx from table1 where id =101 for update)，表锁 (mysql低版本的默认引擎为MyISAM，在现在版本中默认的引擎都是innodb)，再例如写文件就会有读锁和写锁，这些都是在操作之前先上锁，属于悲观锁。java中使用悲观锁的场景有synchronized和ReentrantLock。
+
+**乐观锁**，大多数都体现在应用层面和高吞吐业务中，比较典型的案例就是版本号控制，在数据表中加上一个数据版本号version字段，表示数据被修改的次数，当数据被修改时，version值会加一。当线程A要更新数据值时，在读取数据的同时也会读取version值，在提交更新时，若刚才读取到的version值为当前数据库中的version值相等时才更新，否则重试更新操作，直到更新成功。java中java.util.concurrent.atomic包下面的原子变量类就是使用了乐观锁的一种实现方式CAS（compare and swap）实现的。
+
+事务的调优原则
+
+事务的调优的思路是在不影响业务应用的前提下：
+
+第一，尽可能减少锁的覆盖范围，例如Myisam表锁到Innodb的行锁就是一个减少锁覆盖范围的过程；对于原位锁（排他锁、读写锁等）可变为MVCC多版本（本质仍然是减少锁的范围）。
+
+第二，增加锁上可并行的线程数，例如读锁和写锁的分离，允许并行读取数据。
+
+第三，选择正确锁类型，其中悲观锁适合并发争抢比较严重的场景；乐观锁适合并发争抢不太严重的场景。
+
+
+
+![image-20200401165831020](assets/image-20200401165831020.png)
+
+***
+
+2020.4.2     **多项目共用微服务的测试和发版问题**
+
+
+
+***
+
+- 2020.4.10   **跨表更新  UPDATE JOIN**
+
+类似于跨表查询
+
+```sql
+## 跨表更新
+UPDATE T1, T2,
+[INNER JOIN | LEFT JOIN] T1 ON T1.C1 = T2. C1
+SET T1.C2 = T2.C2,
+    T2.C3 = expr
+WHERE condition
+```
+
+等同于
+
+```sql
+UPDATE T1, T2
+SET T1.c2 = T2.c2,
+      T2.c3 = expr
+WHERE T1.c1 = T2.c1 AND condition
+```
+
+
+
+***
+
+- 2020.4.13   **MySQL主从同步**
+
+主从同步原理
+
+![https://i.imgur.com/NS3cn4n.jpg](https://segmentfault.com/img/bVbtr9Z?w=776&h=617)
+
+***
+
+- 2020.4.15    **rpc调用一直进Hystrix熔断问题排查**
+
+Q：rpc一直熔断，但在熔断切面HystrixAOP类日志看到方法有正确调用并返回结果
+
+R：返回的类没有无参构造函数无法通过反射创建对象。Hystrix、Spring、Mybatis等框架都用反射调用无参构造方法创建对象。即Class类的newInstance方法 `Class.forName("className").getDeclaredConstructor().newInstance();` 这个方法就是通过调用默认构造方法来创建实例对象的 
+
+***
+
+- 2020.4.16   **MVCC实现**
+
+`InnoDB` 中 `MVCC` 的实现方式为：每一行记录都有两个隐藏列：`DATA_TRX_ID`、`DATA_ROLL_PTR`（如果没有主键，则还会多一个隐藏的主键列）。
+
+![img](http://pic.woowen.com/mvcc3.png)
+
+整个MVCC的机制都是通过`DB_TRX_ID`,`DB_ROLL_PTR`这2个隐藏字段来实现的
+
+#### RC事务隔离和RR事务隔离下ReadView的区别
+
+- 在RC事务隔离级别下,每次语句执行都关闭ReadView,然后重新创建一份ReadView
+- 在RR下,事务开始创建ReadView,一直到事务结束关闭
+
+***
+
+- 2020.4.17   **MVCC和undo log**
+
+## Undo log
+
+Undo log可以用来做事务的回滚操作，保证事务的原子性。同时可以用来构建数据修改之前的版本，支持多版本读。
+
+InnoDB表数据组织方式是主键聚簇索引。二级索引通过索引键值加主键值组合来唯一确定一条记录。聚簇索引和二级索引都包含了DELETED BIT标记位来标识记录是否被删除，真正的删除在事务commit之后且没有读会引用该版本数据的时候。在聚簇索引上还有一些额外信息会存储，6字节的DB_TRX_ID字段，表示最近一次插入或者更新该记录的事务ID。7字节的DB_ROLL_PTR字段，指向该记录的rollback segment的undo log记录。6字节的DB_ROW_ID，当有新数据插入的时候会自动递增。当表上没有用户主键的时候，InnoDB会自动产生聚集索引，包含DB_ROW_ID字段。
+
+对于聚簇索引，更新是在原记录位置更新，通过记录指向undo log的隐藏列来重构早期版本的数据。但对于二级索引，是没有聚簇索引上的这些隐藏列的，因此无法在原记录位置更新。当二级索引更新的时候，需要将原记录标记为删除，再插入新的数据记录。当快照读通过二级索引读取数据发现deleted标识或者更新的时候，如果二级索引页上无法判断可见性，InnoDB会查看聚簇索引上的记录行，通过行上的DB_TRX_ID判断可见性，找到正确的可见版本数据。
+
+当用mvcc读取的时候（row_search_mvcc），对于聚簇索引，当拿到一条记录后，会先通过函数lock_clust_rec_cons_read_sees判断可见性，如果不可见会再构建老版本数据row_vers_build_for_consistent_read。
+
+
+
+参考资料：
+
+MySQL · 引擎特性 · InnoDB MVCC 相关实现：http://mysql.taobao.org/monthly/2018/11/04/
+
+
+
+***
+
+- 2020.4.21  **mysql锁表处理语句**
+
+show OPEN TABLES where In_use > 0; -- 查询是否锁表
+show processlist; -- 查询到相对应的进程===然后killid
+SELECT * FROM INFORMATION_SCHEMA.innodb_trx; -- 当前运行的所有事务
+SELECT * FROM INFORMATION_SCHEMA.INNODB_LOCKS; -- 查看正在锁的事务
+SELECT * FROM INFORMATION_SCHEMA.INNODB_LOCK_WAITS; -- 查看等待锁的事务
+
+```sql
+START TRANSACTION;
+
+UPDATE sys_user SET username='AA' WHERE id = 199;
+
+SELECT * FROM information_schema.innodb_trx;
+
+SELECT * FROM information_schema.innodb_locks;
+
+SELECT * FROM information_schema.innodb_lock_waits;
+
+SHOW VARIABLES LIKE '%innodb_lock_wait%';
+
+UPDATE sys_user SET username='zzz' WHERE id = 199;
+
+# — 查看当前会话show global variables like ‘innodb_lock_w%’; — 查看全局设置
+show variables like 'innodb_lock_wait_timeout'; 
+
+set innodb_lock_wait_timeout=1000; 
+```
+
+
+
+```sql
+START TRANSACTION;
+UPDATE sys_user SET username='zzz' WHERE id = 199;
+
+SELECT * FROM information_schema.innodb_trx;
+
+SHOW PROCESSLIST;
+
+show OPEN TABLES where In_use > 0;
+
+```
+
+```sql
+找到一直未提交事务导致后来进程死锁等待的进程，并杀掉
+
+根据锁等待表中的拥有锁的事务id(blocking_trx_id)，从innodb_trx表中找到trx_mysql_thread_id值，kill掉。
+
+如 这里杀掉 进程235：
+select trx_mysql_thread_id from information_schema.innodb_trx it 
+JOIN information_schema.INNODB_LOCK_WAITS ilw 
+on ilw.blocking_trx_id = it.trx_id;
+
+##trx_mysql_thread_id: 235
+
+kill 235
+
+```
+
+Java的锁表异常：
+
+```java
+Cause: java.sql.SQLException: Lock wait timeout exceeded; 
+try restarting transaction
+```
+
+show OPEN TABLES where In_use > 0; -- 查询是否锁表
+
+![image-20200427101802554](assets/image-20200427101802554.png)
+
+information_schema.innodb_locks  正在锁的事务 信息表
+
+37716056:724:3:76	37716056	X	RECORD	`ioc`.`sys_user`	PRIMARY	724	3	76	193
+37716055:724:3:76	37716055	X	RECORD	`ioc`.`sys_user`	PRIMARY	724	3	76	193
+37716054:724:3:76	37716054	X	RECORD	`ioc`.`sys_user`	PRIMARY	724	3	76	193
+37716053:724:3:76	37716053	X	RECORD	`ioc`.`sys_user`	PRIMARY	724	3	76	193![image-20200427100602877](assets/image-20200427100602877.png)
+
+INFORMATION_SCHEMA.INNODB_LOCK_WAITS; -- 查看等待锁的事务
+
+37716056	37716056:724:3:76	37716055	37716055:724:3:76
+37716056	37716056:724:3:76	37716054	37716054:724:3:76
+37716056	37716056:724:3:76	37716053	37716053:724:3:76
+37716055	37716055:724:3:76	37716054	37716054:724:3:76
+37716055	37716055:724:3:76	37716053	37716053:724:3:76
+37716054	37716054:724:3:76	37716053	37716053:724:3:76
+
+![image-20200427100640316](assets/image-20200427100640316.png)
+
+根据block
+
+| 37716056 | LOCK WAIT | 2020-04-27 10:02:53 | 37716056:724:3:76 | 2020-04-27 10:02:53 | 2      | 124370                                                       | UPDATE sys_user SET username = 'zzz',status =  0,login_status = 1 WHERE id = 193 | starting index read | 1    | 1    | 2    | 1136 | 1    | 0    | 0               | REPEATABLE READ | 1    | 1    |      | 0    | 0    | 0    | 0    |
+| -------- | --------- | ------------------- | ----------------- | ------------------- | ------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------- | ---- | ---- | ---- | ---- | ---- | ---- | --------------- | --------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| 37716055 | LOCK WAIT | 2020-04-27 10:02:52 | 37716055:724:3:76 | 2020-04-27 10:02:52 | 2      | 124369                                                       | UPDATE sys_user SET  username = 'zzz',status = 0,login_status = 1 WHERE id = 193 | starting index read | 1    | 1    | 2    | 1136 | 1    | 0    | 0               | REPEATABLE READ | 1    | 1    |      | 0    | 0    | 0    | 0    |
+| 37716054 | LOCK WAIT | 2020-04-27 10:02:42 | 37716054:724:3:76 | 2020-04-27 10:02:42 | 2      | 124366                                                       | UPDATE sys_user SET  username = 'zzz',status = 0,login_status = 1 WHERE id = 193 | starting index read | 1    | 1    | 2    | 1136 | 1    | 0    | 0               | REPEATABLE READ | 1    | 1    |      | 0    | 0    | 0    | 0    |
+| 37716053 | RUNNING   | 2020-04-27 10:02:38 |                   | 2                   | 124365 | UPDATE sys_user SET  username = 'zzz',login_status = 0 WHERE   id = 193 | updating or deleting                                         | 1                   | 1    | 2    | 1136 | 1    | 0    | 0    | REPEATABLE READ | 1               | 1    |      | 0    | 0    | 0    | 0    |      |
+
+![image-20200427095807567](assets/image-20200427095807567.png)
+
+
+
+
+
+正在运行中的事务表，可以看到共有153个事务正在运行：
+
+![image-20200427100845115](assets/image-20200427100845115.png)
+
+
+
+最早开始的事务 为13个小时多前：
+
+2020-04-26 20:44:49
+
+
+
+### **查看死锁日志**
+
+设计`InnoDB`的大叔给我们提供了`SHOW ENGINE INNODB STATUS`命令来查看关于InnoDB存储引擎的一些状态信息，其中就包括了系统最近一次发生死锁时的加锁情况。在上边例子中的死锁发生时，我们运行一下这个命令：
+
+```
+mysql> SHOW ENGINE INNODB STATUS\G
+...省略了好多其他信息
+```
+
+***
+
+- 2020.4.30    **AQS中获取操作和释放操作的标准形式**
+
+```java
+boolean acquire() throws InterruptedException{
+    while(当前状态不允许获取操作){
+        if (需要阻塞获取请求) {
+            如果当前线程不在队列中。则将其插入队列
+            阻塞当前线程
+        }else{
+            返回失败
+        }
+    }
+    可能更新同步器的状态
+    如果线程位于队列中，则将其移除队列
+    返回成功
+}
+void release(){
+    更新同步器的状态
+    if (新的状态允许某个被阻塞的线程获取成功) {
+        解除队列中一个或多个线程的阻塞状态
+    }
+}
+```
+
+
+
+![image-20200430164639926](assets/image-20200430164639926.png)
+
+***
+
+- 2020.5.14    ** annotation processing in IntelliJ IDEA **
+
+Preferences > Project Settings > Compiler > Annotation Processors
+
+勾选  annotation processing 开启编译时注解处理，用Lombok等插件时会用到
+
+***
+
+- 2020.5.26  **源码阅读**
+
+来源于公众号：彤哥读源码
+
+标星是建议必看的部分
+
+![image.png](https://i.loli.net/2020/05/26/1HlrUBDgyFRXoqV.png)
+
+
+
+### GC 日志查看：
+
+先开启几个jvm配置参数（本地IDEA的话可以在 EditConfigurations... -> VM options中添加）：
+
+> -XX:+PrintGCDetails 输出GC的详细日志
+> -XX:+PrintGCTimeStamps 输出GC的时间戳（以基准时间的形式）
+> -XX:+PrintGCDateStamps 输出GC的时间戳（以日期的形式，如 2013-05-04T21:53:59.234+0800）
+> -XX:+PrintHeapAtGC 在进行GC的前后打印出堆的信息
+
+```shell
+//GC信息
+2020-05-26T16:46:11.017+0800: [GC (Allocation Failure) [PSYoungGen: 647288K->10731K(613376K)] 725778K->102966K(845824K), 0.0103918 secs] [Times: user=0.11 sys=0.02, real=0.01 secs]
+
+
+//包含GC前后heap信息的日志
+{Heap before GC invocations=27 (full 3):
+ PSYoungGen      total 648192K, used 647288K [0x000000076b200000, 0x0000000795480000, 0x00000007c0000000)
+  eden space 626688K, 99% used [0x000000076b200000,0x0000000791595548,0x0000000791600000)
+  from space 21504K, 97% used [0x0000000793500000,0x0000000794988b80,0x0000000794a00000)
+  to   space 10752K, 0% used [0x0000000794a00000,0x0000000794a00000,0x0000000795480000)
+ ParOldGen       total 232448K, used 78490K [0x00000006c1600000, 0x00000006cf900000, 0x000000076b200000)
+  object space 232448K, 33% used [0x00000006c1600000,0x00000006c62a68d8,0x00000006cf900000)
+ Metaspace       used 76461K, capacity 78012K, committed 78232K, reserved 1118208K
+  class space    used 10004K, capacity 10288K, committed 10408K, reserved 1048576K
+2020-05-26T16:46:11.017+0800: [GC (Allocation Failure) [PSYoungGen: 647288K->10731K(613376K)] 725778K->102966K(845824K), 0.0103918 secs] [Times: user=0.11 sys=0.02, real=0.01 secs] 
+Heap after GC invocations=27 (full 3):
+ PSYoungGen      total 613376K, used 10731K [0x000000076b200000, 0x0000000795480000, 0x00000007c0000000)
+  eden space 602624K, 0% used [0x000000076b200000,0x000000076b200000,0x000000078fe80000)
+  from space 10752K, 99% used [0x0000000794a00000,0x000000079547ae60,0x0000000795480000)
+  to   space 28672K, 0% used [0x0000000791c80000,0x0000000791c80000,0x0000000793880000)
+ ParOldGen       total 232448K, used 92234K [0x00000006c1600000, 0x00000006cf900000, 0x000000076b200000)
+  object space 232448K, 39% used [0x00000006c1600000,0x00000006c7012b48,0x00000006cf900000)
+ Metaspace       used 76461K, capacity 78012K, committed 78232K, reserved 1118208K
+  class space    used 10004K, capacity 10288K, committed 10408K, reserved 1048576K
+}
+```
+
+选这一条进行分析
+
+> GC：
+>
+> 表明进行了一次垃圾回收，前面没有Full修饰，表明这是一次Minor GC ,注意它不表示只GC新生代，并且现有的不管是新生代还是老年代都会STW。
+>
+> Allocation Failure：
+>
+> 表明本次引起GC的原因是因为在年轻代中没有足够的空间能够存储新的数据了。
+>
+> ParNew：
+>
+>     表明本次GC发生在年轻代并且使用的是ParNew垃圾收集器。ParNew是一个Serial收集器的多线程版本，会使用多个CPU和线程完成垃圾收集工作（默认使用的线程数和CPU数相同，可以使用-XX：ParallelGCThreads参数限制）。该收集器采用复制算法回收内存，期间会停止其他工作线程，即Stop The World。
+>
+> 647288K->10731K(613376K)：单位是KB
+>
+> 三个参数分别为：GC前该内存区域(这里是年轻代)使用容量，GC后该内存区域使用容量，该内存区域总容量。
+>
+> 0.0103918 secs：
+>
+>     该内存区域GC耗时，单位是秒
+>
+> 522739K->156516K(1322496K)：
+>
+> 三个参数分别为：堆区垃圾回收前的大小，堆区垃圾回收后的大小，堆区总大小。
+>
+> 0.0025301 secs：
+>
+> 该内存区域GC耗时，单位是秒
+>
+> [Times: user=0.04 sys=0.00, real=0.01 secs]：
+>
+>     分别表示用户态耗时，内核态耗时和总耗时
+> ————————————————
+
+
+
+***
+
+- 2020.5.27    **对象头中mark word小端存储**
+
+Intel 系列CPU 采用小端存储，二进制数的**字节**需要反一下顺序，注意是只调换一下字节的顺序，字节里面的位不用逆序而是整体迁移，所以 
+
+00000001 01010010 11011101 10001001 
+
+00010001 00000000 00000000 00000000
+
+其实应该是
+
+00000000 00000000 00000000 0 0010001 
+
+10001001 11011101 01010010 00000001 
+
+可以看到64位mark word 
+
+ 00000000 00000000 00000000 0(unused) 0010001 10001001 11011101 01010010(hashcode) 0(unused)000 0(age) 0(biased_lock) 01(lock) 
+
+unused:25 | identity_hashcode:31 | unused:1 | age:4 | biased_lock:1 | lock:2
+
+>  OFFSET  SIZE                                TYPE DESCRIPTION                               VALUE
+>       0     4                                     (object header)                           01 52 dd 89 (00000001 01010010 11011101 10001001) (-1981984255)
+>       4     4                                     (object header)                           11 00 00 00 (00010001 00000000 00000000 00000000) (17)
+>       8     4                                     (object header)                           8e 30 17 00 (10001110 00110000 00010111 00000000) (1519758)
+>      12     4                                     (object header)                           06 00 00 00 (00000110 00000000 00000000 00000000) (6)
+>      16    24   com.cheelou.base.concurrent.Demoo Demoo;.<elements>                         N/A
+> Instance size: 40 bytes
+> Space losses: 0 bytes internal + 0 bytes external = 0 bytes total
+
+```ruby
+|------------------------------------------------------------------------------|--------------------|
+|                                  Mark Word (64 bits)                         |       State        |
+|------------------------------------------------------------------------------|--------------------|
+| unused:25 | identity_hashcode:31 | unused:1 | age:4 | biased_lock:1 | lock:2 |       Normal       |
+|------------------------------------------------------------------------------|--------------------|
+| thread:54 |       epoch:2        | unused:1 | age:4 | biased_lock:1 | lock:2 |       Biased       |
+|------------------------------------------------------------------------------|--------------------|
+|                       ptr_to_lock_record:62                         | lock:2 | Lightweight Locked |
+|------------------------------------------------------------------------------|--------------------|
+|                     ptr_to_heavyweight_monitor:62                   | lock:2 | Heavyweight Locked |
+|------------------------------------------------------------------------------|--------------------|
+|                                                                     | lock:2 |    Marked for GC   |
+|------------------------------------------------------------------------------|--------------------|
+```
+
+***
+
+- 2020.5.31   **CMS的CMSInitiatingOccupancyFraction**
+
+`-XX:CMSInitiatingOccupancyFraction`这个参数是指在使用CMS收集器的情况下，老年代使用了该指定阈值的内存时，触发FullGC。
+
+其默认值 
+
+1、CMSInitiatingOccupancyFraction默认值是-1，并不是许多人说的68、92之类的。MinHeapFreeRatio在JDK1.8是40，根据公式_initiating_occupancy计算得到的值是92%。
+
+2、CMSInitiatingOccupancyFraction是用来计算老年代最大使用率（_initiating_occupancy）的。大于等于0则直接取百分号，小于0则根据公式来计算。这个_initiating_occupancy需要配合-XX:+UseCMSInitiatingOccupancyOnly来使用。
+
+3、不同版本最终得到的_initiating_occupancy不同，归根结底应该是不同版本下的MinHeapFreeRatio值不同。
+
+>Tips:
+>
+>查看JVM配置参数 用法：jinfo -flag <name>  PID
+> 例如：
+> jinfo -flag MaxMetaspaceSize 18348，得到结果-XX:MaxMetaspaceSize=536870912，即MaxMetaspaceSize为512M
+
+***
+
+- 2020.6.2   **ThreadLocal的内存泄漏**
+
+当一个线程调用ThreadLocal的set方法设置变量时候，当前线程的ThreadLocalMap里面就会存放一个记录，这个记录的key为ThreadLocal的引用，value则为设置的值。如果当前线程一直存在而没有调用ThreadLocal的remove方法，并且这时候其它地方还是有对ThreadLocal的引用，则当前线程的ThreadLocalMap变量里面会存在ThreadLocal变量的引用和value对象的引用是不会被释放的，这就会造成内存泄露的。但是考虑如果这个ThreadLocal变量没有了其他强依赖，而当前线程还存在的情况下，由于线程的ThreadLocalMap里面的key是弱依赖，则当前线程的ThreadLocalMap里面的ThreadLocal变量的弱引用会被在gc的时候回收，但是对应value还是会造成内存泄露，这时候ThreadLocalMap里面就会存在key为null但是value不为null的entry项。其实在ThreadLocal的set和get和remove方法里面有一些时机是会对这些key为null的entry进行清理的，但是这是不及时的，也不是每次都会执行的，所以一些情况下还是会发生内存泄露，所以在使用完毕后即使调用remove方法才是解决内存泄露的王道。
+
+由于Thread中包含变量ThreadLocalMap，因此ThreadLocalMap与Thread的生命周期是一样长，如果都没有手动删除对应key，都会导致内存泄漏。
+
+但是使用**弱引用**可以多一层保障：弱引用ThreadLocal不会内存泄漏，对应的value在下一次ThreadLocalMap调用set(),get(),remove()的时候会被清除。
+
+因此，ThreadLocal内存泄漏的根源是：由于ThreadLocalMap的生命周期跟Thread一样长，如果没有手动删除对应key就会导致内存泄漏，而不是因为弱引用。
+
+另外线程池中的ThreadLocal不清理也会造成内存泄漏
+
+***
+
+- 2020.6.5   **本地StackOverflow阈值测试**
+
+```java
+public class main {
+
+    static int a = 0;
+
+    public static void main(String[] args) {
+        a();
+    }
+
+    private static void a() {
+        a++;
+        System.out.println(a);
+        a();
+    }
+}
+```
+
+1
+
+2
+
+...
+
+20065
+20066
+*** java.lang.instrument ASSERTION FAILED ***: "!errorOutstanding" with message transform method call failed at JPLISAgent.c line: 873
+*** java.lang.instrument ASSERTION FAILED ***: "!errorOutstanding" with message transform method call failed at JPLISAgent.c line: 873
+*** java.lang.instrument ASSERTION FAILED ***: "!errorOutstanding" with message transform method call failed at JPLISAgent.c line: 873
+Exception in thread "main" java.lang.StackOverflowError
+
+大概20000多一点就会报StackOverflowError栈溢出
+
+***
+
+- 2020.6.7   ****
+
+
+
+查看JVM参数 
+
+`java -XX:+PrintFlagsFinal -version | grep Meta`
+
+```shell
+
+[root@ecs-55a5 ~]# java -XX:+PrintFlagsFinal -version | grep Meta
+    uintx InitialBootClassLoaderMetaspaceSize       = 4194304                             {product}
+    uintx MaxMetaspaceExpansion                     = 5451776                             {product}
+    uintx MaxMetaspaceFreeRatio                     = 70                                  {product}
+    uintx MaxMetaspaceSize                          = 18446744073709547520                    {product}
+    uintx MetaspaceSize                             = 21807104                            {pd product}
+    uintx MinMetaspaceExpansion                     = 339968                              {product}
+    uintx MinMetaspaceFreeRatio                     = 40                                  {product}
+     bool TraceMetadataHumongousAllocation          = false                               {product}
+     bool UseLargePagesInMetaspace                  = false                               {product}
+java version "1.8.0_111"
+Java(TM) SE Runtime Environment (build 1.8.0_111-b14)
+Java HotSpot(TM) 64-Bit Server VM (build 25.111-b14, mixed mode)
+```
+
+***
+
+jclasslib  查看java字节码 IDEA插件
+
+局部变量表等
+
+***
+
+2020.6.9   ** GC空间分配担保**
+
+**正式 Minor GC 前的检查**
+
+在正式 Minor GC 前，JVM 会先检查新生代中对象，是比老年代中剩余空间大还是小。**为什么要做这样的检查呢？**原因很简单，假如 Minor GC 之后 Survivor 区放不下剩余对象，这些对象就要进入到老年代，所以要提前检查老年代是不是够用。这样就有两种情况：
+
+1. 老年代剩余空间大于新生代中的对象大小，那就直接 Minor GC，GC 完 survivor 不够放，老年代也绝对够放
+2. 老年代剩余空间小于新生代中的对象大小，这个时候就要查看是否启用了「老年代空间分配担保规则」，具体来说就是看`-XX:-HandlePromotionFailure`参数是否设置了（一般都会设置）
+
+老年代空间分配担保规则是这样的。如果老年代中剩余空间大小，大于历次 Minor GC 之后剩余对象的大小，那就允许进行 Minor GC。因为从概率上来说，以前的放的下，这次的也应该放的下。那就有两种情况：
+
+1. 老年代中剩余空间大小，大于历次 Minor GC 之后剩余对象的大小，进行 Minor GC
+2. 老年代中剩余空间大小，小于历次 Minor GC 之后剩余对象的大小，进行 Full GC，把老年代空出来再检查
+
+**Minor GC 后的处境**
+
+前面说了，开启**老年代空间分配担保规则**只能说是大概率上来说，Minor GC 剩余后的对象够放到老年代，所以当然也会有万一，Minor GC 后会有这样三种情况：
+
+1. Minor GC 之后的对象足够放到 Survivor 区，皆大欢喜，GC 结束
+2. Minor GC 之后的对象不够放到 Survivor 区，接着进入到老年代，老年代能放下，那也可以，GC 结束
+3. Minor GC 之后的对象不够放到 Survivor 区，老年代也放不下，那就只能 Full GC
+
+![image.png](https://i.loli.net/2020/06/09/TOpgqNGawQx5DMv.png)
+
+参考：《深入理解Java虚拟机(第3版)》 3.8 实战：内存分配与回收策略
+
+***
+
+
+
+- 2020.6.10   **GC**
+
+CMS GC日志
+
+```shell
+{Heap before GC invocations=1954 (full 3):
+ par new generation   total 235968K, used 233367K [0x00000000c0000000, 0x00000000d0000000, 0x00000000d0000000)
+  eden space 209792K,  98% used [0x00000000c0000000, 0x00000000cca55ee8, 0x00000000ccce0000)
+  from space 26176K, 100% used [0x00000000ce670000, 0x00000000d0000000, 0x00000000d0000000)
+  to   space 26176K,   0% used [0x00000000ccce0000, 0x00000000ccce0000, 0x00000000ce670000)
+ concurrent mark-sweep generation total 786432K, used 716477K [0x00000000d0000000, 0x0000000100000000, 0x0000000100000000)
+ Metaspace       used 90998K, capacity 92466K, committed 93440K, reserved 1130496K
+  class space    used 11004K, capacity 11303K, committed 11520K, reserved 1048576K
+2020-06-10T09:59:55.734+0800: [GC (Allocation Failure) 2020-06-10T09:59:55.734+0800: [ParNew: 233367K->26176K(235968K), 0.0084851 secs] 949844K->759781K(1022400K), 0.0086097 secs] [Times: user=0.04 sys=0.00, real=0.00 secs] 
+Heap after GC invocations=1955 (full 3):
+ par new generation   total 235968K, used 26176K [0x00000000c0000000, 0x00000000d0000000, 0x00000000d0000000)
+  eden space 209792K,   0% used [0x00000000c0000000, 0x00000000c0000000, 0x00000000ccce0000)
+  from space 26176K, 100% used [0x00000000ccce0000, 0x00000000ce670000, 0x00000000ce670000)
+  to   space 26176K,   0% used [0x00000000ce670000, 0x00000000ce670000, 0x00000000d0000000)
+ concurrent mark-sweep generation total 786432K, used 733605K [0x00000000d0000000, 0x0000000100000000, 0x0000000100000000)
+ Metaspace       used 90998K, capacity 92466K, committed 93440K, reserved 1130496K
+  class space    used 11004K, capacity 11303K, committed 11520K, reserved 1048576K
+}
+2020-06-10T09:59:55.745+0800: [GC (CMS Initial Mark) [1 CMS-initial-mark: 733605K(786432K)] 766437K(1022400K), 0.0023996 secs] [Times: user=0.01 sys=0.00, real=0.00 secs] 
+2020-06-10T09:59:55.747+0800: [CMS-concurrent-mark-start]
+2020-06-10T09:59:55.864+0800: [CMS-concurrent-mark: 0.117/0.117 secs] [Times: user=0.25 sys=0.00, real=0.12 secs] 
+2020-06-10T09:59:55.864+0800: [CMS-concurrent-preclean-start]
+2020-06-10T09:59:55.867+0800: [CMS-concurrent-preclean: 0.003/0.003 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+2020-06-10T09:59:55.867+0800: [CMS-concurrent-abortable-preclean-start]
+ CMS: abort preclean due to time 2020-06-10T10:00:00.885+0800: [CMS-concurrent-abortable-preclean: 0.934/5.018 secs] [Times: user=0.94 sys=0.00, real=5.02 secs] 
+2020-06-10T10:00:00.886+0800: [GC (CMS Final Remark) [YG occupancy: 56767 K (235968 K)]2020-06-10T10:00:00.886+0800: [Rescan (parallel) , 0.0032350 secs]2020-06-10T10:00:00.889+0800: [weak refs processing, 0.0065645 secs]2020-06-10T10:00:00.896+0800: [class unloading, 0.0365772 secs]2020-06-10T10:00:00.933+0800: [scrub symbol table, 0.0112388 secs]2020-06-10T10:00:00.944+0800: [scrub string table, 0.0016610 secs][1 CMS-remark: 733605K(786432K)] 790373K(1022400K), 0.0742753 secs] [Times: user=0.10 sys=0.00, real=0.07 secs] 
+2020-06-10T10:00:00.961+0800: [CMS-concurrent-sweep-start]
+2020-06-10T10:00:01.075+0800: [CMS-concurrent-sweep: 0.108/0.115 secs] [Times: user=0.12 sys=0.00, real=0.12 secs] 
+2020-06-10T10:00:01.076+0800: [CMS-concurrent-reset-start]
+2020-06-10T10:00:01.077+0800: [CMS-concurrent-reset: 0.002/0.002 secs] [Times: user=0.00 sys=0.00, real=0.00 secs]
+```
+
+
+
+***
+
+- 2020.6.14    **JVM一些面试问题**
+
+
+
+***
+
+- 2020.7.21   **Optional踩坑经验**
+
+of()或者ofNullable()括号里面不能用xx.getYy().getZz()
+
+
+
+***
+
+- 2020.7.31   **Spring静态注入**
+
+业务中有一处SDK的请求需要从缓存中获取token，要注入redisTemplate，但直接写注解@Autowired
+
+```java
+@Autowired
+private static RedisTemplate<String, Object> redisTemplate;
+```
+
+并不能注入该静态变量，会报空指针异常。查阅资料得知**spring支持set方法注入，可以利用非静态setter 方法注入静态变量**。
+
+一种是加入@Component注解和非静态set方法，set方法上加@Autowired，服务启动时会注入静态依赖
+
+```java
+@Component
+public class ClassZZ {
+
+    private static RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    public void setRedisTemplate(RedisTemplate<String, Object> redisTemplate) {
+        ClassZZ.redisTemplate = redisTemplate;
+    }
+```
+
+
+
+还可以用@PostConstruct  init()注入静态
+
+***
+
+FutureTask进行并发异步改造提高多次查询性能
+
+```java
+    /**
+     * FutureTask异步并发获取查询结果多个园区设备的模拟量值,响应时长几乎等于只请求一次
+     * 结合整合同一园区的设备列表、缓存更新token等优化，将原来2~6s的单页查询时间优化至稳定200ms
+     * @param detectorIdUniqueIdMap 探测器和设备uniqueId映射
+     * @param resultsMap 园区和该园区下设备列表映射
+     */
+    public static List<DeviceAnalog> getDeviceAnalogsByFutureTask(Map<String, String> detectorIdUniqueIdMap, Map<Long, List<DeviceDetailInfoVO>> resultsMap) {
+        List<DaHuaFireRomaSDK.DeviceAnalog> deviceAnalogs = new ArrayList<>();
+        //创建线程池
+        ExecutorService executor = Executors.newCachedThreadPool();
+        //结果future列表
+        List<Future<List<DaHuaFireRomaSDK.DeviceAnalog>>> futureList = new ArrayList<>();
+        resultsMap.forEach((projectId,deviceVOs)->{
+            //同一个园区的一批 查询一次模拟量结果
+            List<String> uniqueIds = deviceVOs.stream().map(DeviceDetailInfoVO::getUniqueId).collect(Collectors.toList());
+            List<String> deviceIds = uniqueIds.stream().map(e->detectorIdUniqueIdMap.get(e)).collect(Collectors.toList());
+            //构造task
+            DaHuaFireRomaSDK.Task task = new DaHuaFireRomaSDK.Task(StrUtil.join(",", deviceIds.toArray()), projectId);
+            //提交task
+            Future<List<DeviceAnalog>> result = executor.submit(task);
+            futureList.add(result);
+        });
+        executor.shutdown();
+        futureList.forEach(e->{
+            List<DeviceAnalog> deviceAnalogs1 = null;
+            try {
+                deviceAnalogs1 = e.get();//获取查询结果get()
+            } catch (InterruptedException e1) {
+                e1.printStackTrace();
+            } catch (ExecutionException e1) {
+                e1.printStackTrace();
+            }
+            deviceAnalogs.addAll(deviceAnalogs1);
+        });
+        return deviceAnalogs;
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class Task implements Callable<List<DeviceAnalog>> {
+        String deviceIds;//探测器ids,逗号拼接
+        Long projectId;//园区id
+
+        public Task(String deviceIds, Long projectId) {
+            this.deviceIds = deviceIds;
+            this.projectId = projectId;
+        }
+
+        @Override
+        public List<DeviceAnalog> call() {
+//            System.out.println("子线程在进行请求，参数deviceIds = ");
+            if(log.isDebugEnabled()){
+                log.debug("子线程在进行请求，参数deviceIds = {},projectId = {}",deviceIds,projectId);
+            }
+            List<DeviceAnalog> deviceAnalogs = deviceAnalogJava(deviceIds, projectId);
+            return deviceAnalogs;
+        }
+    }
+```
+
+
+
+***
+
+- 2020.8.7  **@JsonFormat和JsonField**
+
+1、JsonFormat来源于**jackson**，Jackson是一个简单基于Java应用库，Jackson可以轻松的将Java对象转换成json对象和xml文档，同样也可以将json、xml转换成Java对象。Jackson所依赖的jar包较少，简单易用并且性能也要相对高些，并且Jackson社区相对比较活跃，更新速度也比较快。
+2、JSONField来源于**fastjson**，是阿里巴巴的开源框架，主要进行JSON解析和序列化。
+3、DateTimeFormat是spring自带的处理框架，主要用于将时间格式化。
+
+***
+
+- 2020.8.10   ****
+
+Klass继承体系图：
+
+```c++
+// hotspot/src/share/vm/oops/oopsHierarchy.hpp
+...
+class Klass;  // Klass继承体系的最高父类
+class   InstanceKlass;  // 表示一个Java普通类，包含了一个类运行时的所有信息
+class     InstanceMirrorKlass;  // 表示java.lang.Class
+class     InstanceClassLoaderKlass; // 主要用于遍历ClassLoader继承体系
+class     InstanceRefKlass;  // 表示java.lang.ref.Reference及其子类
+class   ArrayKlass;  // 表示一个Java数组类
+class     ObjArrayKlass;  // 普通对象的数组类
+class     TypeArrayKlass;  // 基础类型的数组类
+...
+复制代码
+```
+
+不同于Oop，Klass在`InstanceKlass`下又设计了3个子类，其中`InstanceMirrorKlass`用于表示java.lang.Class类型，该类型对应的oop特别之处在于其包含了`static field`，因此计算`oop`大小时需要把`static field`也考虑进来；`InstanceClassLoaderKlass`主要提供了遍历当前`ClassLoader`的继承体系；`InstanceRefKlass`用于表示`java.lang.ref.Reference`及其子类。
+
+![image.png](https://i.loli.net/2020/08/10/PTMul6rvdwJx8o2.png)
+
+
+
+HotSpot的Oop-Klass对象模型，其中**Oop表示对象的实例，存储在堆中；Klass表示对象的类型，存储在方法区中**
+
+![7a160a3712754fa5baecbaf0e7f68fff.jpg](https://i.loli.net/2020/08/10/hGRCcoK3lex5vMY.jpg)
+
+***
+
+- 2020.08.21    **CMS触发条件foreground collector background collector**
+
+## CMS触发GC的条件
+
+CMS GC 在实现上分成 **foreground collector** 和 **background collector**。foreground collector 相对比较简单，background collector 比较复杂，情况比较多。
+
+**foreground collector**
+foreground collector 触发条件比较简单，一般是如下：
+
+- 老年代没有足够的连续空间分配给晋升的对象（即使总可用内存足够大）。
+- 新生代没有足够的空间分配对象。
+- 老年代没有足够的剩余空间来容纳新的大对象。
+
+**background collector**
+
+
+
+***
+
+- 2020.8.31    **适配器模式**
+
+要点：适配器Adapter实现目标接口
+
+![image.png](https://i.loli.net/2020/08/31/qpSJCigNUGw8DoA.png)
+
+
+
+***
+
+Optional的flatMap和map的区别，flatMap的入参需要一个返回Optional的方法
+
+***
+
+- 2020.09.07    **Optional连续判空**
+
+```java
+String analogValue = Optional.ofNullable(deviceAnalog).map(e->e.getAnalog()).orElse("0");
+```
+
+***
+
+- 2020.09.08   **ConvertUtils.convert()**
+
+ConvertUtils.convert(value,targetType)
+
+```java
+//值类型转换 如 Double 转 String
+Object convertedValue = ConvertUtils.convert(value, targetPd.getPropertyType());
+```
+
+BeanUtils 将source中不为空的字段，拷贝(覆盖)到target中
+
+```java
+public abstract class BeanUtil extends org.springframework.beans.BeanUtils {
+    /**
+     * 将source中不为空的字段，拷贝(覆盖)到target中
+     * @param source
+     * @param target
+     * @throws BeansException
+     */
+    public static void copyProperties(Object source, Object target) throws BeansException {
+        Assert.notNull(source, "Source must not be null");
+        Assert.notNull(target, "Target must not be null");
+        Class<?> actualEditable = target.getClass();
+        PropertyDescriptor[] targetPds = getPropertyDescriptors(actualEditable);
+        for (PropertyDescriptor targetPd : targetPds) {
+            if (targetPd.getWriteMethod() != null) {
+                PropertyDescriptor sourcePd = getPropertyDescriptor(source.getClass(), targetPd.getName());
+                if (sourcePd != null && sourcePd.getReadMethod() != null) {
+                    try {
+                        Method readMethod = sourcePd.getReadMethod();
+                        if (!Modifier.isPublic(readMethod.getDeclaringClass().getModifiers())) {
+                            readMethod.setAccessible(true);
+                        }
+                        Object value = readMethod.invoke(source);
+                        // 这里判断以下value是否为空 当然这里也能进行一些特殊要求的处理 例如绑定时格式转换等等
+                        if (value != null) {
+                            Method writeMethod = targetPd.getWriteMethod();
+                            if (!Modifier.isPublic(writeMethod.getDeclaringClass().getModifiers())) {
+                                writeMethod.setAccessible(true);
+                            }
+                            //值类型转换 如 Double 转 String
+                            Object convertedValue = ConvertUtils.convert(value, targetPd.getPropertyType());
+                            writeMethod.invoke(target, convertedValue);
+                        }
+                    } catch (Throwable ex) {
+                        throw new FatalBeanException("Could not copy properties from source to target,"+"sourcePd.name = "+sourcePd.getName()+",", ex);
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+***
+
+- 2020.9.21  **REST**
+
+#### REST是什么
+
+`REST`即表述性状态传递（英文：`Representational State Transfer`，简称`REST`）是`Roy Fielding`博士在2000年他的博士论文中提出来的一种软件架构风格。表述性状态转移是一组架构约束条件和原则
+ 所以简而言之，`REST`是一种风格
+ `REST`通常基于使用`HTTP`，`URI`，和`XML`（标准通用标记语言下的一个子集）以及`HTML`（标准通用标记语言下的一个应用）这些现有的广泛流行的协议和标准。`REST` 通常使用 `JSON` 数据格式。
+
+#### RESTful是什么
+
+那么既然`REST`是一种风格，`RESTful`又是什么呢？
+ `RESTful`是满足这些约束条件和原则的应用程序或设计
+
+主要是从三个方面来看
+
+- 资源
+   资源就是一个实体，你可以用一个`URI`（统一资源定位符）指向它，每种资源对应一个特定的`URI`。要获取这个资源，访问它的`URI`就可以，因此`URI`就成了每一个资源的地址或独一无二的识别符
+- 表现层
+   把资源呈现出来的形式叫表现层，可以用`HTML`格式、`XML`格式、`JSON`格式表现，`REST`中常用的是`JSON`格式
+- 状态转化
+   访问一个网站，就代表了客户端和服务器的一个互动过程。在这个过程中，势必涉及到数据和状态的变化。
+   `HTTP`协议，是一个无状态协议。这意味着，所有的状态都保存在服务器端。因此，如果客户端想要操作服务器，必须通过某种手段，让服务器端发生"状态转化"。而这种转化是建立在表现层之上的，所以就是"表现层状态转化"。
+   客户端用到的手段，只能是HTTP协议。
+   1.**GET**用来获取资源
+   2.**POST**用来新建资源（也可以用于更新资源）
+   3.**PUT**用来更新资源
+   4.**DELETE**用来删除资源。
+
+综合上面的解释，我们总结一下什么是`RESTful`架构：
+ （1）每一个`URI`代表一种资源；
+ （2）客户端和服务器之间，传递这种资源的某种表现层；
+ （3）客户端通过四个`HTTP`动词，对服务器端资源进行操作，实现"表现层状态转化"。
+
+#### 设计误区
+
+- `URI`不应该包含动词，因为它是一个资源，动词应该放在`HTTP`协议中
+- `URI`不应该包含版本号，因为不同的版本，可以理解成同一种资源的不同表现形式，所以应该采用同一个`URI`
+
+#### REST的优点
+
+- `URI`具有很强可读性的，具有自描述性
+- 充分利用 `HTTP` 协议本身语义
+- 无状态，在调用一个接口（访问、操作资源）的时候，可以不用考虑上下文，不用考虑当前状态，极大的降低了复杂度
+- `HTTP` 本身提供了丰富的内容协商手段，无论是缓存，还是资源修改的乐观并发控制，都可以以业务无关的中间件来实现
+
+
+
+参考链接：https://www.jianshu.com/p/c85baf7e12a8
+
+***
+
+管道、管线化：pipe、pipelining，不用等待响应发送后续
+
+请求
+
+***
+
+- 2020.9.28   **http/https与websocket的ws/wss的关系**
+
+> http -> new WebSocket('ws://xxx')
+>
+> https -> new WebSocket('wss://xxx')
+
+
+
+***
+
+- 2020.10.20   **maven本地jar包部署到私服**
+
+deploy
+
+```shell
+mvn deploy:deploy-file -DgroupId=com.holley -DartifactId=holley-sdk  -Dversion=0.0.1 -Dpacckaging=jar -Dfile=holley-sdk-0.0.1.jar -DrepositoryId=releases -Durl=https://work.gtdreamlife.com:18081/repository/maven-releases/
+```
+
+***
+
+网关解决跨域问题配置：
+
+```java
+/**
+ * 跨域
+ */
+@Configuration
+public class GlobalCorsConfiguration   {
+
+    @Bean
+    public FilterRegistrationBean corsFilter() {
+        final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        final CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.setAllowCredentials(true);
+        corsConfiguration.addAllowedOrigin("*");
+        corsConfiguration.addAllowedHeader("*");
+        corsConfiguration.addAllowedMethod("*");
+        source.registerCorsConfiguration("/**", corsConfiguration);
+        FilterRegistrationBean bean = new FilterRegistrationBean(new CorsFilter(source));
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return bean;
+    }
+}
+```
+
+- 2020.10.22   **海量数据处理问题算法**
+
+**8、怎么在海量数据中找出重复次数最多的一个？** 
+  方案1：先做hash，然后求模映射为小文件，求出每个小文件中重复次数最多的一个，并记录重复次数。然后找出上一步求出的数据中重复次数最多的一个就是所求（具体参考前面的题）。
+
+
+
+参考：
+
+ [十道海量数据处理面试题与十个方法大总结](https://blog.csdn.net/v_JULY_v/article/details/6279498)
+
+[程序员编程艺术：第十章、如何给10^7个数据量的磁盘文件排序](https://blog.csdn.net/v_JULY_v/article/details/6451990)
+
+***
+
+- 2020.11.16   ** META-INF/spring.factories添加依赖类 **
+
+spring.fatories 自动配置（AutoConfiguration）格式如下
+
+```properties
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.zzz.common.feign.xxxClass
+```
+
+
+
+- 2020.11.26    **线程池大小**
+
+线程池大小 = NCPU *UCPU(1+W/C)](https://www.cnblogs.com/yueruijie/p/11357938.html)
+
+ 
+
+如何选择线程池数量
+
+线程池的大小决定着系统的性能，过大或者过小的线程池数量都无法发挥最优的系统性能。
+
+当然线程池的大小也不需要做的太过于精确，只需要避免过大和过小的情况。一般来说，
+
+确定线程池的大小需要考虑CPU的数量，内存大小，任务是计算密集型还是IO密集型等因素
+
+ 
+
+NCPU = CPU的数量
+
+UCPU = 期望对CPU的使用率 0 ≤ UCPU ≤ 1
+
+W/C = 等待时间与计算时间的比率
+
+如果希望处理器达到理想的使用率，那么线程池的最优大小为：
+
+**线程池大小=NCPU \*UCPU(1+W/C)**
+
+***
+
+- 2020.11.27    **RabbitMQ消费**
+
+queue名称为随机的必须是autodelete=true，不然会堆一堆消息没人消费。
+
+
+
+其他参数：
+
+durable： 是否持久化, 队列的声明默认是存放到内存中的，如果rabbitmq重启会丢失，如果想重启之后还存在就要使队列持久化，保存到Erlang自带的Mnesia数据库中，当rabbitmq重启之后会读取该数据库
+
+exclusive：是否排外的，有两个作用，一：当连接关闭时connection.close()该队列是否会自动删除；二：该队列是否是私有的private，如果不是排外的，可以使用两个消费者都访问同一个队列，没有任何问题，如果是排外的，会对当前队列加锁，其他通道channel是不能访问的，如果强制访问会报异常，一般等于true的话用于一个队列只能有一个消费者来消费的场景
+
+autodelete：当没有任何消费者使用时，自动删除该队列
+
+
+
+autodelete  服务宕机停止后就删除队列，会丢失宕机期间的数据，但可以用于本地调试时配合队列名为空queue = ""，autodelete=true，达到收到调试消息的目的
+
+***
+- 2020.12.8     **@FunctionalInterface注解**
+
+
+
+ObjectFactory函数表达式作参数，getObject()方法执行时执行表达式，并返回getObject方法定义的返回参数。匿名函数不同实现，使用匿名内部类来实例化函数式接口的对象
+
+![ObjectFactory函数表达式作参数，getObject()](assets/coder-inspiration/ObjectFactory函数表达式作参数，getObject().png)
+
+JAVA8新特性：函数式接口@FunctionalInterface的使用说明  http://www.manongjc.com/article/46188.html  
+
+
+***
+
+- 2020.12.18     **MySQL字符串字段乘除法运算**
+
+`CAST( @x / @y AS DECIMAL(m,n) )`
+
+@x和@y就是除数和被除数
+
+n的值是整数部分加小数部分的总长度，m值的是小数部分的位数
+
+***
+
+- 2020.12.28    **同步互斥**
+
+互斥是实现同步的一种手段，临界区、互斥量（Mutex）和信号量（Semaphore）都是主要互斥方式。互斥是因，同步是果。
+
+监视器锁（Monitor 另一个名字叫管程）本质是依赖于底层的操作系统的 Mutex Lock（互斥锁）来实现的。每个对象都存在着一个 monitor 与之关联，对象与其 monitor 之间的关系有存在多种实现方式，如 monitor 可以与对象一起创建销毁或当线程试图获取对象锁时自动生成，但当一个 monitor 被某个线程持有后，它便处于锁定状态。
+
+
+
+***
+
+- 2020.12.29   **RPC调用和HTTP调用的区别**
+
+最本质的区别，就是RPC主要是基于TCP/IP协议的，而HTTP服务主要是基于HTTP协议的，我们都知道HTTP协议是在传输层协议TCP之上的，所以效率上RPC更胜一筹
+
+
+
+
+
+***
+
+之所以 JDK 的动态代理只能通过接口实现，原因是因为运行时 newProxyInstance 内部会缓存形式先通过字节码生成一个代理类，这个代理类默认已经继承了 Proxy 类，同时实现了我们传入的一堆接口；由于 Java 是单继承的，所以 JDK 动态代理只能代理接口，接口可以实现多个，但是类只能继承实现一个。
+
+譬如我们使用动态代理样例如下：
+
+```java
+// Foo 为接口
+InvocationHandler handler = new MyInvocationHandler(...);
+Class<?> proxyClass = Proxy.getProxyClass(Foo.class.getClassLoader(), Foo.class);
+Foo f = (Foo) Proxy.newProxyInstance(Foo.class.getClassLoader(), new Class<?>[] { Foo.class }, handler);
+```
+
+上面代码运行时会在内存中默认通过字节码生成一个动态代理类，大致样子如下：
+
+```java
+public class $Proxy1 extends Proxy implements Foo {
+    ......
+}
+```
+
+这就是为什么 JDK 动态代理只能通过接口实现的原因。
+
+
+
+***
+
+- 2020.12.30     **DDD领域驱动设计**
+
+**两顶帽子：**
+
+- 在不添加新功能的前提下，重构代码，调整原有程序结构，以适应新功能；
+- 实现新的功能。
+
+
+
+以往当拿到需求时，开发人员往往草草设计以后就开始编码，设计质量也就不高。
+
+而采用领域驱动的方式，在拿到新需求以后，应当先进行需求分析，设计领域模型。
+
+自己笔记：从面向流程开发转为面向领域模型，类比面向过程编程和面向对象编程，映射到微服务中。涉及到的设计原则有**开闭原则**、**单一职责原则**
+
+https://mp.weixin.qq.com/s/53I1t-QiJGliNq-NxGYpCg
+
+***
+
+- 2021.1.3    **interrupt()中断**
+
+   要中断一个Java线程，可调用线程类（Thread）对象的实例方法：interrupte()；然而interrupte()方法并不会立即执行中断操作；具体而言，这个方法只会给线程设置一个为true的中断标志（**中断标志只是一个布尔类型的变量**），而设置之后，则根据线程当前的状态进行不同的后续操作。如果，线程的当前状态处于非阻塞状态，那么仅仅是线程的中断标志被修改为true而已；如果线程的当前状态处于阻塞状态，那么在将中断标志设置为true后，还会有如下三种情况之一的操作：
+
+ 
+
+- 如果是wait、sleep以及jion三个方法引起的阻塞，那么会将线程的中断标志**重新设置为false**，并抛出一个InterruptedException；
+- 如果是java.nio.channels.InterruptibleChannel进行的io操作引起的阻塞，则会对线程抛出一个ClosedByInterruptedException；（待验证）
+- 如果是轮询（java.nio.channels.Selectors）引起的线程阻塞，则立即返回，不会抛出异常。（待验证）
+
+  如果在中断时，线程正处于非阻塞状态，则将中断标志修改为true,而在此基础上，一旦进入阻塞状态，则按照阻塞状态的情况来进行处理；例如，**一个线程在运行状态中，其中断标志被设置为true,则此后，一旦线程调用了wait、join、sleep方法中的一种，立马抛出一个InterruptedException，且中断标志被清除，重新设置为false。**
+
+  通过上面的分析，我们可以总结，**调用线程类的interrupted方法，其本质只是设置该线程的中断标志，将中断标志设置为true，并根据线程状态决定是否抛出异常**。因此，通过interrupted方法真正实现线程的中断原理是：**开发人员根据中断标志的具体值，来决定如何退出线程。**
+
+```java
+public void run() {
+            try {
+                while (true){
+                    Thread.sleep(1000l);//阻塞状态，线程被调用了interrupte（）方法，清除中断标志，抛出InterruptedException
+                    //dosomething
+                    boolean isIn = this.isInterrupted();
+                    //运行状态，线程被调用了interrupte（）方法，中断标志被设置为true
+                    //非阻塞状态中进行中断线程操作
+                    if(isInterrupted()) break;//退出循环，中断进程
+                }
+            }catch (InterruptedException e){//阻塞状态中进行中断线程操作
+                boolean isIn = this.isInterrupted();//退出阻塞状态，且中断标志被清除，重新设置为false，所以此处的isIn为false
+                return;//退出run方法，中断进程
+            }
+        }
+```
+***
+
+- 2021.1.5   **[coobird](https://github.com/coobird)/[thumbnailator](https://github.com/coobird/thumbnailator) OOM  YGC FGC**
+
+[coobird](https://github.com/coobird)/**[thumbnailator](https://github.com/coobird/thumbnailator)**  java缩略图开源框架
+
+上传图片压缩时，出现内存溢出，`Exception in thread "main" java.lang.OutOfMemoryError: Java heap space`，
+
+用MAT分析heap dump文件和gc情况(1s内多次YGC和CMS FGC)  定位到 `Thumbnails.of(inputStream).scale(rate).toFile(tempFile);` 用thumbnailator框架压缩图片这一句
+
+![image.png](https://i.loli.net/2021/01/05/nKEYcZMpalNJOqi.png)
+
+以下为作者最终解答：
+
+占用堆内存大小和图片分辨率有关，最小为 两倍的图片 宽 * 高 * 4 字节，15000 x 15000的图片约要占用2* 15000 *15000 *4 B = 900MB的堆内存，
+
+![image.png](https://i.loli.net/2021/01/05/4IKaUmJ1sDXorz2.png)

@@ -1,5 +1,5 @@
 ---
-title: once-git-merge-mistake-solve
+ title: once-git-merge-mistake-solve
 date: 2018-04-20 23:37:00
 tags: 
 - git
