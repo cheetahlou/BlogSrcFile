@@ -4997,8 +4997,888 @@ public void run() {
 
 ![image.png](https://i.loli.net/2021/01/05/nKEYcZMpalNJOqi.png)
 
-以下为作者最终解答：
+以下为作者最终解答（https://github.com/coobird/thumbnailator/issues/147）：
 
 占用堆内存大小和图片分辨率有关，最小为 两倍的图片 宽 * 高 * 4 字节，15000 x 15000的图片约要占用2* 15000 *15000 *4 B = 900MB的堆内存，
 
 ![image.png](https://i.loli.net/2021/01/05/4IKaUmJ1sDXorz2.png)
+
+
+
+***
+
+- 2021.1.6    **异步回调**
+
+异步回调最本质上就是事件驱动编程(event-driven)
+
+***
+
+- 2021.1.8  **IDEA 中Git的smart Checkout跟force checkout的区别**
+
+smart checkout就会把冲突的这部分内容带到开发分支（如果你没有点进窗口的那些文件处理冲突的话）
+
+force checkout就不会把冲突的这部分内容带到开发分支
+
+***
+
+- 2021.1.13   **Redis用hash类型代替scan和keys等的模糊查询**
+
+所有的scan和keys 都应该放到一个hash里面去,即使我多加个key放置 key-value 在循环出对应的key,也不应该放置scan和keys。且大部分key应该设置过期时间。
+
+***
+
+- 2021.1.18   **JVM运行流程图**
+
+```java
+// AppMain.java
+public class AppMain {                         //运行时，JVM把AppMain的信息都放入方法区    
+
+    public static void main(String[] args) { //main成员方法本身放入方法区。    
+        Sample test1 = new  Sample( " 测试1 " );   //test1是引用，所以放到栈区里，Sample是自定义对象应该放到堆里面    
+        Sample test2 = new  Sample( " 测试2 " );         
+        test1.printName();    
+        test2.printName();    
+    }
+    
+} 
+
+```
+
+
+
+![16daab2e7c47d74b](assets/16daab2e7c47d74b.jpg)
+
+***
+
+## 如何定义Immutable Object不可变对象
+
+Java 语言目前还没有原生的不可变对象的支持，但在[Java™ Tutorials](https://docs.oracle.com/javase/tutorial/)中给出的如何定义一个不可变对象的方法。
+
+1. 类中的属性不提供"setter"方法；
+2. 类中所有的属性声明成private和final类型；
+3. 类也声明成final的，以防止类被继承；
+4. 如果有属性是引用类型的，也要防止引用类型的属性被调用方修改了，如通过构造器初始化所有成员，尤其是引用对象要进行深拷贝(deep copy，符合copy-on-write 原则)；
+5. 如果确实需要实现 getter 方法，或者其他可能会返回内部状态的方法，也要深拷贝，创建私有的 copy。
+
+***
+
+## Java序列化与反序列化
+
+### 几个需要注意的问题
+
+序列化ID问题:
+
+JVM是否允许反序列化，不仅取决于类路径和功能是否一致，一个非常重要的一点是两个序列化ID是否一致。 如果类完全相同，但是ID不同，依然不能互相序列化与反序列化。
+
+案例：在C/S架构中，使用Facade模式，Client端的Facade Object是利用Server端生成并序列化后通过网络传到Client端。 当服务端Facade进行升级后，将serialVersionUID进行修改，将使得客户端重新获取新的Facade Object。
+
+静态变量是不被序列化的，静态变量是属于类的状态，而序列化是针对Java对象的。
+
+Java在序列化对象进行存储时，如果将同一个对象序列化两次，为了节省空间，第二次写入时只是写对第一次的引用。
+
+**对于final变量，因为只能赋值一次，反序列化的时候会重新计算其值**，如果反序列化类中将final赋成”古尔丹“，那么在反序列化时就会重新计算成”古尔丹“。但下面这个例子特殊：
+
+```java
+//服务端序列化类
+public class Person implements Serializable{
+    private static final long serialVersionUUID = 9187654L;
+    public final String name;
+    pulic Person(){
+        name="地域咆哮";
+    }
+}
+//客户端反序列化类
+public class Person implements Serializable{
+    private static final long serialVersionUUID = 9187654L;
+    public final String name;
+    public Person(){
+        name = "古尔丹";
+    }
+}
+```
+
+反序列化执行后，name的属性值仍然是”地域咆哮“！ 这是因为JVM从数据流中获取一个Object对象，然后读取其中的类表述信息，看到final变量，需要重新计算， 于是引用Person类的name值，但是发现竟然反序列化中对name并没有赋值，JVM又”聪明“的引用了旧的name值； 归根到底，**是因为反序列化不会执行构造函数**，和new有很大区别。
+
+### 参考资料
+
+https://www.ibm.com/developerworks/cn/java/j-lo-serial/
+
+***
+
+对于final变量，因为只能赋值一次，如果final属性是一个直接量，在反序列化时就会重新计算其值。也就是将用类代码中直接赋值的final属性值，而不是用序列化的对象文件中的final值。如果final属性没有赋值或在构造函数中赋值，那都将会用序列化文件中的旧值。
+
+
+
+参考：
+
+《编写高质量代码 改善Java程序的151个建议》 ：建议12：避免用序列化类在构造函数中为不变量赋值 
+
+***
+
+- 2021.1.19     **晋升图**
+
+![image-20210119104541564](assets/image-20210119104541564.png)
+
+***
+
+**HTTP2.0和HTTP1.X相比的新特性**
+
+- **新的二进制格式**（Binary Format），HTTP1.x的解析是基于文本。基于文本协议的格式解析存在天然缺陷，文本的表现形式有多样性，要做到健壮性考虑的场景必然很多，二进制则不同，只认0和1的组合。基于这种考虑HTTP2.0的协议解析决定采用二进制格式，实现方便且健壮。
+- **多路复用**（MultiPlexing），即连接共享，即每一个request都是是用作连接共享机制的。一个request对应一个id，这样一个连接上可以有多个request，每个连接的request可以随机的混杂在一起，接收方可以根据request的 id将request再归属到各自不同的服务端请求里面。HTTP/2 通过让所有数据流共用同一个连接，可以更有效地使用 TCP 连接，让高带宽也能真正的服务于 HTTP 的性能提升。
+- **header压缩**，如上文中所言，对前面提到过HTTP1.x的header带有大量信息，而且每次都要重复发送，HTTP2.0使用encoder来减少需要传输的header大小，通讯双方各自cache一份header fields表，既避免了重复header的传输，又减小了需要传输的大小。
+- **服务端推送**（server push），同SPDY一样，HTTP2.0也具有server push功能。
+
+***
+
+### [HTTP1.0、HTTP1.1 和 HTTP2.0 的区别](https://www.cnblogs.com/lfri/p/12591336.html)
+
+- 结论1：从HTTP/1.0到HTTP/2，都是利用TCP作为底层协议进行通信的。
+- 结论2：HTTP/1.1，引进了长连接(keep-alive)，减少了建立和关闭连接的消耗和延迟。
+- 结论3：HTTP/2，引入了多路复用：连接共享，提高了连接的利用率，降低延迟。
+
+***
+
+- 2021.1.22    **IDEA查看结构方法快捷键**
+
+Ctrl + H 显示类继承层次图
+
+Ctrl - F12 当前编辑的文件中快速导航(可以直接键入字母，IntelliJ IDEA会筛选你输入的来匹配对应是否有的方法，来快速定位)(类似结构图)
+
+***
+
+- 2021.1.25    **X-Frame-Options响应头**
+
+*X-Frame-Options 响应头*
+*注意: CSP Level 2 规范中的 frame-ancestors 指令会替代这个非标准的 header。CSP 的 frame-ancestors 会在 Gecko 4.0 中支持，但是并不会被所有浏览器支持。然而 X-Frame-Options 是个已广泛支持的非官方标准，可以和 CSP 结合使用。*
+X-Frame-Options HTTP 响应头是用来给浏览器指示允许一个页面可否在 frame , iframe 或者 object 中展现的标记。网站可以使用此功能，来确保自己网站的内容没有被嵌到别人的网站中去，也从而避免了点击劫持 (clickjacking) 的攻击。
+
+X-Frame-Options 有三个值:
+
+DENY
+表示该页面不允许在 frame 中展示，即便是在相同域名的页面中嵌套也不允许。
+SAMEORIGIN
+表示该页面可以在相同域名页面的 frame 中展示。
+ALLOW-FROM uri
+表示该页面可以在指定来源的 frame 中展示。
+
+***
+
+- 2021.1.27    **Klass/Oop模型和InstanceKlass、InstanceMirrorKlass**
+
+如果每创建一个对象，如果需要记录这个对象所对应的类的所有信息(虚方法表，父类指针，访问标志，方法入口等)，是否记录的东西大多数都是重复的，所以使用Klass对象（c++对象）记录该类的所有元数据，而使用Oop对象记录对象自己的数据
+
+### java_mirror
+
+它是一个指向一个oop对象的指针。意思就是说这个java_mirror是一个oop对象，然而这个oop对象就是我们平时使用的java.lang.Class对象，这个Class对象是对Klass对象的封装给程序员做反射使用的，既然是一个oop那肯定有对应的Klass，java.lang.Class对象所对应的klass是InstanceMirrorKlass 
+
+HotSpot VM会给Class对象注入一个隐藏字段"klass"，用于指回到其对应的InstanceKlass对象。
+
+
+
+![klass.png](https://cdn.nlark.com/yuque/0/2019/png/185253/1550837459439-ffe3abe6-9e5b-470b-ace9-35f82dc8341a.png)
+
+
+
+### prototype_header
+
+这个是一个markOop结构，意思就是一个mark word，这个结构是用来辅助偏向锁的和cas使用的，每一个oop创建的时候，都是复制prototype_header的值当做自己的初始mark word，当偏向锁撤销从偏向到达阈值(默认是20次)的时候，就会修改prototype_header里面的epoll位加1，然后批量从偏向
+
+
+
+参考：
+
+**Klass/Oop模型**： https://www.yuque.com/pramy/mh0thi/hs4lk3
+
+***
+
+- 2021.2.7     **线程池OOM测试**
+
+测试参数：
+
+线程数：
+
+```java
+//代码
+package com.cheelou.base.concurrent;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 线程池OOM测试
+ * @author 
+ * @createTime 2021/2/7 16:28
+ */
+public class ExecutorsDemo {
+
+    public static void main(String[] args) {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+
+        for (int i = 1; i <= 150000; i++) {
+            executorService.execute(new MyTask1(i));
+        }
+    }
+
+
+}
+
+class MyTask implements Runnable{
+
+    int i;
+
+    public MyTask(int i) {
+        this.i = i;
+    }
+
+    @Override
+    public void run() {
+        System.out.println(Thread.currentThread().getName()+" --- "+i);
+        try {
+            TimeUnit.SECONDS.sleep(3600);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+![image-20210207175810945](assets/coder-inspiration/image-20210207175810945.png)
+
+![image-20210207190442974](assets/coder-inspiration/image-20210207190442974.png)
+
+```
+pool-1-thread-196496 --- 196496
+pool-1-thread-196497 --- 196497
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (malloc) failed to allocate 1572080 bytes for AllocateHeap
+# An error report file with more information is saved as:
+# G:\GithubRepos\springboot-demo\hs_err_pid590788.log
+```
+
+![image-20210208004554949](assets/coder-inspiration/image-20210208004554949.png)
+
+***
+
+- 2021.2.8    **jvm可创建线程数量**
+
+## jvm可创建线程数量
+
+> 公式： `(MaxProcessMemory - JVMMemory - ReservedOsMemory) / (ThreadStackSize) = 线程数`
+
+- **MaxProcessMemory** 代表jvm进程最大可用的内存，32位操作系统为2G，64位操作系统取决于系统设置，如果未限制则默认等于物理内存；
+- **JVMMemory** 代表JVM的堆内存占用，此处也包含一些JVM堆外内存占用，如`code-cache`、 `direct-memory-buffer` 、`class-compess-space`等；
+- **ReservedOsMemory** 操作系统每个进程预留内存
+- **ThreadStackSize**  线程栈的大小，可以通过 -Xss 设置
+
+线程栈ThreadStackSize：
+
+> Java程序中，每个线程都有自己的Stack Space。这个Stack Space的空间是独立分配的，与-Xmx和-Xms指定的堆大小无关。Stack Space用来做方法的递归调用时压入Stack Frame。所以当递归调用太深的时候，就有可能耗尽Stack Space，爆出StackOverflow的错误。对于32位JVM，缺省值为256KB，对于64位JVM，缺省值为512KB。最大值根据平台和特定机器配置的不同而不同。如果超过最大值，那么将报告[java](http://www.rigongyizu.com/tag/java/)/lang/OutOfMemoryError消息。
+
+可见，减少Xss指定的线程栈大小能够启动更多的线程，但是线程总数也受到系统空闲内存和操作系统的限制。
+
+
+
+heap:10m    OOM时线程数：8972      线程占用堆内存：2515576 B   每个线程占用堆内存大小：280.0  B
+
+heap：16m    OOM时线程数：19091    线程占用堆内存：5345568 B    每个线程占用堆内存大小：280.0 B
+
+
+
+经过实践得出，当java堆内存很小，线程数到达一定量就会因为new新的Thread对象申请不到足够的堆内存而OOM，当堆内存很大，系统的剩余空闲内存较小，就会因为操作系统空间空间不足而报`java.lang.OutOfMemoryError: unable to create native thread: possibly out of memory or process/resource limits reached`无法创建操作系统线程。
+
+> 实际上，java里每新起一个线程，jvm会向操作系统请求新起一个本地线程，此时操作系统会用空闲的内存空间来分配这个线程。所以java里线程并不会占用
+> jvm的内存空间，而是会占用操作系统空闲的内存空间
+
+
+
+16G内存的电脑，JVM堆内存设置`-Xms15200m -Xmx15200m -Xss1m`，只创建了251个线程就因为
+
+```
+......
+pool-1-thread-250 --- 250
+pool-1-thread-251 --- 251  
+[0.398s][warning][os,thread] Failed to start thread - _beginthreadex failed (EINVAL) for attributes: stacksize: 1024k, flags: CREATE_SUSPENDED STACK_SIZE_PARAM_IS_A.
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffc6654f913, pid=682008, tid=688440
+#
+# JRE version: Java(TM) SE Runtime Environment (13.0.1+9) (build 13.0.1+9)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (13.0.1+9, mixed mode, sharing, tiered, compressed oops, g1 gc, windows-amd64)
+# Problematic frame:
+# V  [jvm.dll+0x37f913]Exception in thread "main" java.lang.OutOfMemoryError: unable to create native thread: possibly out of memory or process/resource limits reached
+	at java.base/java.lang.Thread.start0(Native Method)
+	at java.base/java.lang.Thread.start(Thread.java:799)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.addWorker(ThreadPoolExecutor.java:937)
+
+Process finished with exit code -1073741819 (0xC0000005)
+
+```
+
+
+
+设置栈大小`-Xss256k`递归调用，经过多次运行，未加三个局部变量时栈最大深度1788左右，加上三个局部变量赋值后栈最大深度2322左右。
+
+提高虚拟机栈大小-Xss或Threadstacksize参数后，提高到`-Xss512k`后递归最大深度提高
+
+局部变量以及其他栈帧内的元素（操作数栈、动态链接、返回地址）越多，一个线程栈内所能容纳的栈帧数，也就是线程栈最大深度越少。同样当虚拟机栈大小增大时，也可以增大栈最大深度。
+
+***
+
+- 2021.2.13      **JVM三色标记**
+
+## 三色标记
+
+- **黑色：**
+
+表示对象已经被垃圾收集器访问过， 且这个对象的所有引用都已经扫描过。 黑色的对象代表已经扫描过， 它是安全存活的， 如果有其他对象引用指向了黑色对象， 无须重新扫描一遍。 黑色对象不可能直接（不经过灰色对象） 指向某个白色对象。
+
+- **灰色：**
+
+表示对象已经被垃圾收集器访问过， 但这个对象上至少存在一个引用还没有被扫描过。
+
+- **白色：**
+
+表示对象尚未被垃圾收集器访问过。 显然在可达性分析刚刚开始的阶段， 所有的对象都是白色的， 若在分析结束的阶段， 仍然是白色的对象， 即代表不可达。
+
+
+
+
+## 漏标-读写屏障
+
+漏标会导致被引用的对象被当成垃圾误删除，这是严重bug，必须解决，有两种解决方案： **增量更新（Incremental Update） 和原始快照（Snapshot At The Beginning，SATB）**。
+
+**增量更新**：当黑色对象插入新的指向白色对象的引用关系时， 就将这个新插入的引用记录下来，新增的引用使用集合保存起来， 等并发扫描结束之后， 再将这些记录过的引用关系中的黑色对象为根， 重新扫描一次。 这可以简化理解为， **黑色对象一旦新插入了指向白色对象的引用之后， 它就变回灰色对象了**。重新标记的时候会暂停线程（STW）所以会保证对象所有的状态都是不变的，这就是CMS重新标记的原理；
+
+**原始快照**：当灰色对象要删除指向白色对象的引用关系时， 就将这个要删除的引用记录下来， 在并发扫描结束之后，再将这些记录过的引用关系中的灰色对象为根， 重新扫描一次，这样就能扫描到白色的对象，将白色对象直接标记为黑色(**目的就是让这种对象在本轮gc清理中能存活下来，待下一轮gc的时候重新扫描，这个对象也有可能是浮动垃圾**)以上无论是对引用关系记录的插入还是删除， 虚拟机的记录操作都是通过**写屏障**实现的。
+
+
+
+***
+
+- 2021.2.26    **Card Table和RSet**
+
+GC Roots是垃圾收集器寻找可达对象的起点，通过这些起始引用，可以快速的遍历出存活对象。GC Roots最常见的是静态引用和堆栈的局部引用变量。然而，这不是我们这讲的重点：)
+
+现代JVM，堆空间通常被划分为新生代和老年代。由于新生代的垃圾收集通常很频繁，如果老年代对象引用了新生代的对象，那么，需要跟踪从**老年代到新生代**的所有引用，从而避免每次YGC时扫描整个老年代，减少开销。
+
+
+
+**RSet（Remembered Set、记忆集）**
+
+**
+
+在垃圾收集过程中，会存在一种现象，即跨代引用，在G1中，又叫跨Region引用。如果是年轻代指向老年代的引用我们不用关心，因为即使Minor GC把年轻代的对象清理掉了，程序依然能正常运行，而且随着引用链的断掉，无法被标记到的老年代对象会被后续的Major GC回收。如果是老年代指向年轻代的引用，那这个引用在Minor GC阶段是不能被回收掉的，那如何解决这个问题呢？
+
+
+
+最简单的实现方式当然是每个对象中记录这个跨Region引用记录，GC时扫描所有老年代的对象，显然这是一个相当大的Overhead。为什么呢？因为IBM做过这样的实验，发现绝大多数对象都是“朝生夕灭”，等不到进入老年代，能进入老年代的对象最多不到5%。JVM的新生代内存比例是8:1:1也是基于这个结论设定的。
+
+
+
+最合理的实现方式自然是记录哪些Region中的老年代的对象有指向年轻代的引用。GC时扫描这些Region就行了。这就是RSet存在的意义。RSet本质上是一种哈希表，Key是Region的起始地址，Value是一个集合，里面存储的元素是卡表的索引号（第几个Card的第几个元素）。
+
+
+
+CMS在**并发标记**阶段，应用线程和GC线程是并发执行的，因此可能产生新的对象或对象关系发生变化，例如：
+
+- 新生代的对象晋升到老年代；
+- 直接在老年代分配对象；
+- 老年代对象的引用关系发生变更；
+- 等等。
+
+对于这些对象，需要重新标记以防止被遗漏。为了提高重新标记的效率，**并发标记阶段**会把这些发生变化的对象所在的Card标识为**Dirty**，这样后续阶段就只需要扫描这些Dirty Card的对象，从而避免扫描整个老年代
+
+
+
+G1收集器的设计目标是取代CMS收集器，它同CMS相比，在以下方面表现的更出色： * G1是一个有整理内存过程的垃圾收集器，不会产生很多内存碎片。 * G1的Stop The World(STW)更可控，G1在停顿时间上添加了预测机制，用户可以指定期望停顿时间。
+
+***
+
+- 2021.2.28        **场景解决方案**
+
+![image-20210228223229435](assets/coder-inspiration/image-20210228223229435.png)
+
+***
+
+常见的组件最大QPS，mysql单机1000QPS，Redis单机10万QPS。
+
+***
+
+### 秒杀
+
+知乎 - 如何设计秒杀系统？
+
+https://www.zhihu.com/question/54895548
+
+淘宝秒杀系统怎么设计？——10+后端经验阿里面试官2小时教你处理网站高并发问题
+
+https://www.bilibili.com/video/BV1DV411B7Jq
+
+***
+
+- 2021.3.1    **volatile关键字和LOCK前缀指令**
+
+对于Lock指令区分两种实现方法
+
+对于早期的CPU，总是采用的是锁总线的方式。具体方法是，一旦遇到了Lock指令，就由仲裁器选择一个核心独占总线。其余的CPU核心不能再通过总线与内存通讯。从而达到“原子性”的目的。
+
+具体做法是，某一个核心触发总线的“Lock#”那根线，让总线仲裁器工作，把总线完全分给某个核心。
+
+这种方式的确能解决问题，但是非常不高效。为了个原子性结果搞得其他CPU都不能干活了。因此从Intel P6 CPU开始就做了一个优化，改用Ringbus + MESI协议，也就是文档里说的cache conherence机制。这种技术被Intel称为“Cache Locking”。
+
+根据文档原文：如果是P6后的CPU，并且数据已经被CPU缓存了，并且是要写回到主存的，则可以用cache locking处理问题。**否则还是得锁总线**。因此，lock到底用锁总线，还是用cache locking，完全是看当时的情况。当然能用后者的就肯定用后者。
+
+### LOCK#作用总结
+
+1. 锁总线，其它CPU对内存的读写请求都会被阻塞，直到锁释放，因为锁总线的开销比较大，后来的处理器都采用锁缓存替代锁总线，在无法使用缓存锁的时候会降级使用总线锁
+2. lock期间的写操作会回写已修改的数据到主内存，同时通过缓存一致性协议让其它CPU相关缓存行失效
+
+***
+
+- 2021.3.5     **从字节码汇编看volatile和synchronized的可见性有序性保证**
+
+volatile字节码、汇编指令：lock  add
+
+![20190315145054799](assets/20190315145054799.png)
+
+synchronized关键字的java代码、字节码、汇编指令：lock  cmpxchg     比较并交换
+
+![20190315153133844](assets/20190315153133844.png)
+
+
+
+**参考资料（图片来源）：**
+
+【Java使用字节码和汇编语言同步分析volatile，synchronized的底层实现】
+https://blog.csdn.net/21aspnet/article/details/88571740
+
+
+
+可以看到volatile和synchronized关键字在汇编层面都使用了lock前缀指令，查阅《IA-32架构软件开发人员手册_卷3：系统编程指南》中对lock指令。
+
+**lock指令做了什么**
+
+之前有说过IA-32架构，关于CPU架构的问题大家有兴趣的可以自己查询一下，这里查询一下IA-32手册关于lock指令的描述，没有IA-32手册的可以去这个地址下载[IA-32手册下载地址](http://download.csdn.net/detail/andrew_yau/7429355)，是个中文版本的手册。
+
+我摘抄一下IA-32手册中关于lock指令作用的一些描述（因为lock指令的作用在手册中散落在各处，并不是在某一章或者某一节专门讲）： 
+
+```
+在修改内存操作时，使用LOCK前缀去调用加锁的读-修改-写操作，这种机制用于多处理器系统中处理器之间进行可靠的通讯，具体描述如下：
+（1）在Pentium和早期的IA-32处理器中，LOCK前缀会使处理器执行当前指令时产生一个LOCK#信号，这种总是引起显式总线锁定出现
+（2）在Pentium4、Inter Xeon和P6系列处理器中，加锁操作是由高速缓存锁或总线锁来处理。如果内存访问有高速缓存且只影响一个单独的高速缓存行，那么操作中就会调用高速缓存锁，而系统总线和系统内存中的实际区域内不会被锁定。同时，这条总线上的其它Pentium4、Intel Xeon或者P6系列处理器就回写所有已修改的数据并使它们的高速缓存失效，以保证系统内存的一致性。如果内存访问没有高速缓存且/或它跨越了高速缓存行的边界，那么这个处理器就会产生LOCK#信号，并在锁定操作期间不会响应总线控制请求
+32位IA-32处理器支持对系统内存中的某个区域进行加锁的原子操作。这些操作常用来管理共享的数据结构（如信号量、段描述符、系统段或页表），两个或多个处理器可能同时会修改这些数据结构中的同一数据域或标志。处理器使用三个相互依赖的机制来实现加锁的原子操作：
+1、保证原子操作
+2、总线加锁，使用LOCK#信号和LOCK指令前缀
+3、高速缓存相干性协议，确保对高速缓存中的数据结构执行原子操作（高速缓存锁）。这种机制存在于Pentium4、Intel Xeon和P6系列处理器中
+IA-32处理器提供有一个LOCK#信号，会在某些关键内存操作期间被自动激活，去锁定系统总线。当这个输出信号发出的时候，来自其他处理器或总线代理的控制请求将被阻塞。软件能够通过预先在指令前添加LOCK前缀来指定需要LOCK语义的其它场合。
+在Intel386、Intel486、Pentium处理器中，明确地对指令加锁会导致LOCK#信号的产生。由硬件设计人员来保证系统硬件中LOCK#信号的可用性，以控制处理器间的内存访问。
+对于Pentinum4、Intel Xeon以及P6系列处理器，如果被访问的内存区域是在处理器内部进行高速缓存的，那么通常不发出LOCK#信号；相反，加锁只应用于处理器的高速缓存。
+```
+
+
+
+```
+为显式地强制执行LOCK语义，软件可以在下列指令修改内存区域时使用LOCK前缀。当LOCK前缀被置于其它指令之前或者指令没有对内存进行写操作（也就是说目标操作数在寄存器中）时，会产生一个非法操作码异常（#UD）。
+【1】位测试和修改指令（BTS、BTR、BTC）
+【2】交换指令（XADD、CMPXCHG、CMPXCHG8B）
+【3】自动假设有LOCK前缀的XCHG指令【4】下列单操作数的算数和逻辑指令：INC、DEC、NOT、NEG【5】下列双操作数的算数和逻辑指令：ADD、ADC、SUB、SBB、AND、OR、XOR一个加锁的指令会保证对目标操作数所在的内存区域加锁，但是系统可能会将锁定区域解释得稍大一些。软件应该使用相同的地址和操作数长度来访问信号量（用作处理器之间发送信号的共享内存）。例如，如果一个处理器使用一个字来访问信号量，其它处理器就不应该使用一个字节来访问这个信号量。总线锁的完整性不收内存区域对齐的影响。加锁语义会一直持续，以满足更新整个操作数所需的总线周期个数。但是，建议加锁访问应该对齐在它们的自然边界上，以提升系统性能：【1】任何8位访问的边界（加锁或不加锁）【2】锁定的字访问的16位边界【3】锁定的双字访问的32位边界【4】锁定的四字访问的64位边界对所有其它的内存操作和所有可见的外部事件来说，加锁的操作都是原子的。所有取指令和页表操作能够越过加锁的指令。加锁的指令可用于同步一个处理器写数据而另一个处理器读数据的操作。
+```
+
+
+
+
+
+```
+IA-32架构提供了几种机制用来强化或弱化内存排序模型，以处理特殊的编程情形。这些机制包括：
+【1】I/O指令、加锁指令、LOCK前缀以及串行化指令等，强制在处理器上进行较强的排序
+【2】SFENCE指令（在Pentium III中引入）和LFENCE指令、MFENCE指令（在Pentium4和Intel Xeon处理器中引入）提供了某些特殊类型内存操作的排序和串行化功能
+...（这里还有两条就不写了）
+这些机制可以通过下面的方式使用。
+总线上的内存映射设备和其它I/O设备通常对向它们缓冲区写操作的顺序很敏感，I/O指令（IN指令和OUT指令）以下面的方式对这种访问执行强写操作的排序。在执行了一条I/O指令之前，处理器等待之前的所有指令执行完毕以及所有的缓冲区都被都被写入了内存。只有取指令和页表查询能够越过I/O指令，后续指令要等到I/O指令执行完毕才开始执行。
+```
+
+
+
+反复思考IA-32手册对lock指令作用的这几段描述，可以得出lock指令的几个作用：
+
+1. 锁总线，其它CPU对内存的读写请求都会被阻塞，直到锁释放，不过实际后来的处理器都采用锁缓存替代锁总线，因为锁总线的开销比较大，锁总线期间其他CPU没法访问内存
+2. lock后的写操作会回写已修改的数据，同时让其它CPU相关缓存行失效，从而重新从主存中加载最新的数据
+3. 不是内存屏障却能完成类似内存屏障的功能，阻止屏障两遍的指令重排序
+
+（1）中写了由于效率问题，实际后来的处理器都采用锁缓存来替代锁总线，这种场景下多缓存的数据一致是通过缓存一致性协议来保证的，我们来看一下什么是缓存一致性协议。 
+
+**缓存一致性协议**
+
+讲缓存一致性之前，先说一下**缓存行**的概念：
+
+- 缓存是分段（line）的，一个段对应一块存储空间，我们称之为缓存行，它是CPU缓存中可分配的最小存储单元，大小32字节、64字节、128字节不等，这与CPU架构有关，通常来说是64字节。当CPU看到一条读取内存的指令时，它会把内存地址传递给一级数据缓存，一级数据缓存会检查它是否有这个内存地址对应的缓存段，如果没有就把整个缓存段从内存（或更高一级的缓存）中加载进来。注意，这里说的是一次加载整个缓存段，这就是上面提过的局部性原理
+
+上面说了，LOCK#会锁总线，实际上这不现实，因为锁总线效率太低了。因此最好能做到：使用多组缓存，但是它们的行为看起来只有一组缓存那样。缓存一致性协议就是为了做到这一点而设计的，就像名称所暗示的那样，**这类协议就是要使多组缓存的内容保持一致**。
+
+缓存一致性协议有多种，但是日常处理的大多数计算机设备都属于"嗅探（snooping）"协议，它的基本思想是：
+
+```
+所有内存的传输都发生在一条共享的总线上，而所有的处理器都能看到这条总线：缓存本身是独立的，但是内存是共享资源，所有的内存访问都要经过仲裁（同一个指令周期中，只有一个CPU缓存可以读写内存）。
+CPU缓存不仅仅在做内存传输的时候才与总线打交道，而是不停在嗅探总线上发生的数据交换，跟踪其他缓存在做什么。所以当一个缓存代表它所属的处理器去读写内存时，其它处理器都会得到通知，它们以此来使自己的缓存保持同步。只要某个处理器一写内存，其它处理器马上知道这块内存在它们的缓存段中已失效。
+```
+
+MESI协议是当前最主流的缓存一致性协议，在MESI协议中，每个缓存行有4个状态，可用2个bit表示，它们分别是：
+
+![img](https://images2015.cnblogs.com/blog/801753/201706/801753-20170620131125273-1538564632.png)
+
+这里的I、S和M状态已经有了对应的概念：失效/未载入、干净以及脏的缓存段。所以这里新的知识点只有E状态，代表独占式访问，这个状态解决了"在我们开始修改某块内存之前，我们需要告诉其它处理器"这一问题：只有当缓存行处于E或者M状态时，处理器才能去写它，也就是说只有在这两种状态下，处理器是独占这个缓存行的。当处理器想写某个缓存行时，如果它没有独占权，它必须先发送一条"我要独占权"的请求给总线，**这会通知其它处理器把它们拥有的同一缓存段的拷贝失效**（如果有）。只有在获得独占权后，处理器才能开始修改数据----并且此时这个处理器知道，这个缓存行只有一份拷贝，在我自己的缓存里，所以不会有任何冲突。
+
+反之，如果有其它处理器想读取这个缓存行（马上能知道，因为一直在嗅探总线），独占或已修改的缓存行必须先回到"共享"状态。如果是已修改的缓存行，那么还要先把内容回写到内存中。
+
+**参考资料：**
+
+【[就是要你懂Java中volatile关键字实现原理](https://www.cnblogs.com/xrq730/p/7048693.html)】https://www.cnblogs.com/xrq730/p/7048693.html
+
+
+
+缓存一致性协议当前最主流的是MESI协议。
+
+***
+
+
+
+【内存屏障】https://dslztx.github.io/blog/2020/02/13/%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C/
+
+***
+
+- 2021.3.8    **final关键字的可见性**
+
+一个类的**final**字段会在初始化后插入一个store屏障，来确保final字段在构造函数初始化完成并可被使用时可见。
+
+## final关键字
+
+如果一个实例的字段被声明为final，则JVM会在初始化final变量后插入一个sfence。
+
+> 类的final字段在`<clinit>()`方法中初始化，其可见性由JVM的类加载过程保证。
+
+final字段的初始化在`<init>()`方法中完成。sfence禁用了sfence前后对store的重排序，且保证final字段初始化之前（include）的内存更新都是可见的。
+
+### 再谈部分初始化
+
+上述良好性质被称为“`初始化安全性`”。它保证，**对于被正确构造的对象，所有线程都能看到构造函数给对象的各个final字段设置的正确值，而不管采用何种方式来发布对象**。
+
+***
+
+- 2021.3.12   **永远不为空（减少判空）的结构设计**
+
+增加哨兵节点，使数据结构中永远不为空，避免大量判空导致的易出错和代码低维护性。
+
+
+
+CPU 空闲时循环执行操作系统中**空闲进程**特定的 halt 指令。
+
+***
+
+- 2021.3.15   **volatile变量OpenJDK的jvm源码**
+
+java代码和字节码
+
+```java
+
+public class Test3 {
+
+    public static volatile int found = 0;
+
+    public static void change() {
+        found = 1;
+    }
+}
+```
+
+```
+
+ iconst_1
+1 putstatic #11 <com/qimingnan/concurrent/Test3.found>
+4 return
+```
+
+
+
+openjdk源码
+
+```c++
+
+CASE(_putstatic):
+{
+  ……
+
+  //
+  // Now store the result
+  //
+  int field_offset = cache->f2_as_index();
+  if (cache->is_volatile()) {
+    if (tos_type == itos) {
+      obj->release_int_field_put(field_offset, STACK_INT(-1));
+    } 
+    
+    ……
+    
+    OrderAccess::storeload();
+```
+
+
+
+```c++
+
+inline void oopDesc::release_int_field_put(int offset, jint contents){ 
+    OrderAccess::release_store(int_field_addr(offset), contents);
+}
+```
+
+```c++
+
+inline void OrderAccess::release_store(volatile juint* p, juint v) {
+ *p = v;
+}
+```
+
+```c++
+
+inline void OrderAccess::storeload()  { 
+    fence();
+}
+```
+
+```c++
+
+inline void OrderAccess::fence() {
+  if (os::is_MP()) {
+    // always use locked addl since mfence is sometimes expensive
+#ifdef AMD64
+    __asm__ volatile ("lock; addl $0,0(%%rsp)" : : : "cc", "memory");
+#else
+    __asm__ volatile ("lock; addl $0,0(%%esp)" : : : "cc", "memory");
+#endif
+  }
+}
+```
+
+执行引擎执行putstatic指令的流程：
+
+1. 判断有没有volatile修饰，判断共享变量的数据类型，进入相应的if代码段。我们这里的found是int行，执行release_int_field_put
+2. release_int_field_put函数完成了两件事情：1、从虚拟机栈pop出iconst_1压入的值；2、将值写入found所在的内存区域
+3. release_int_field_put函数执行完以后就执行类OrderAccess的方法storeload，这个就是我们经常说的内存屏障。
+
+
+
+![](https://i.loli.net/2021/03/16/RJO5XzS3tVMdvF2.png)
+
+***
+
+- 2021.3.16   **arthas常用排查示例**
+
+> **排查案例**
+>
+> 1. 监控各种⽅法的出⼊参
+>     `watch com.kingboy.controller.inside.auth.InsideAuthController checkAuthCode
+>     '{params,returnObj,throwExp}' -v -n 5 -x 3 '1==1'`
+>
+> 2. 诊断接⼝调⽤链路消耗时间
+>     `trace -E com.kingboy.controller.inside.auth.InsideAuthController getAuthCode -n 5 -v --skipJDKMethod false
+>     '1==1'`
+>
+> 3. 监控⽅法执⾏情况
+>     `monitor com.kingboy.controller.inside.auth.InsideAuthController getAuthCode -v -n 10 --cycle 10 '1==1'`
+>
+> 4. 记录指定⽅法不同时间的执⾏情况
+>     `tt -t com.kingboy.controller.inside.auth.InsideAuthController getAuthCode -n 5 '1==1'`
+>
+> 5. 查看JVM信息
+> https://arthas.aliyun.com/doc/jvm.html
+>
+> 6. 修改JVM诊断相关信息
+>     vmoption
+>     vmoption PrintGCDetails true
+>
+>   ```
+>   HeapDumpBeforeFullGC fullGC前存储heapDump HeapDumpAfterFullGC fullGC后存储heapDump
+>   HeapDumpOnOutOfMemoryError OOM的时候存储heapDump HeapDumpPath 设置heapDump存储路径
+>   CMSAbortablePrecleanWaitMillis
+>   CMSWaitDuration CMS执⾏等待周期 CMSTriggerInterval CMS触发间隔时间 PrintGC
+>   PrintGCDetails
+>   PrintGCDateStamps 打印GC时间戳
+>   PrintGCTimeStamps 打印GC时间戳 PrintGCID
+>   PrintClassHistogramBeforeFullGC 打印类信息 PrintClassHistogramAfterFullGC
+>   PrintClassHistogram
+>   MinHeapFreeRatio 设置堆空间最⼩空闲⽐例 MaxHeapFreeRatio 设置堆空间最⼤空闲⽐例
+>   PrintConcurrentLocks 打印并发锁
+>   ```
+>
+>   
+>
+> 7. 热修复
+>
+> 8. 任务后台执⾏
+>     https://arthas.aliyun.com/doc/async.html
+
+***
+
+- 2021.3.17   
+
+面向对象设计考虑因素：封装、粒度、依赖关系、灵活性、性能、演化、复用
+
+***
+
+- 2021.3.18   
+
+Linux操作系统面向cpu抽象出了自己的一套内存屏障函数，它们分别是：
+
+- smp_rmb(): 在invalid queue的数据被刷完之后再执行屏障后的读操作。
+- smp_wmb(): 在store buffer的数据被刷完之后再执行屏障后的写操作。
+- smp_mb(): 同时具有读屏障和写屏障功能
+
+***
+
+设计模式   组合模式（Composite）
+
+![image-20210318172436837](assets/image-20210318172436837.png)
+
+***
+
+- 2021.3.20     **R大RSet回答**
+
+Remembered Set是一种抽象概念，而card table可以是remembered set的一种实现方式。
+
+Remembered Set是在实现部分垃圾收集（partial GC）时用于记录从非收集部分指向收集部分的指针的**集合**的抽象数据结构。
+
+分代式GC是一种部分垃圾收集的实现方式。当分两代时，通常把这两代叫做young gen和old gen；通常能单独收集的只是young gen。此时remembered set记录的就是从old gen指向young gen的跨代指针。
+
+Regional collector也是一种部分垃圾收集的实现方式。此时remembered set就要记录跨region的指针。
+
+不过就像平时讨论GC时大家只关心tracing GC而通常不把reference counting算在里面（严格说reference counting也是一种GC），remembered set与card table也有一些平时讨论时隐含的假设（虽然严格说那些假设并不必要）。
+
+例如：
+
+1、记录精度
+
+一般的隐含假设：
+Remembered Set：对象粒度（remembered set里存有old generation的对象的指针）；
+Card Table：card粒度（通常是2的幂字节大小的内存区域，例如HotSpot用512字节），里面可能包含多个对象。
+
+其实无论是remembered set还是card table，记录精度都有很大的选择余地：
+\* 字粒度：每个记录精确到一个机器字（word）。该字包含有跨代指针。
+\* 对象粒度：每个记录精确到一个对象。该对象里有字段含有跨代指针。
+\* card粒度：每个记录精确到一大块内存区域。该区域内有对象含有跨代指针。
+\* （还有其它可能性，任君想像）
+
+现实中上面3种做法都有应用到实际产品种。全看设计者的取舍。
+如果选择card的大小为1 word，那card粒度就是等于字粒度。
+
+2、使用的数据结构
+
+一般的隐含假设：
+Remembered Set：使用指针（对象指针或者字指针）的数据来实现，例如
+
+C代码 [![收藏代码](https://hllvm-group.iteye.com/images/icon_star.png)](javascript:void())
+
+1. **struct** RememberedSet { 
+2.  Object* data[MAX_REMEMBEREDSET_SIZE]; 
+3. }; 
+
+
+或
+
+C代码 [![收藏代码](https://hllvm-group.iteye.com/images/icon_star.png)](javascript:void())
+
+1. **typedef** **char*** address; 
+2.  
+3. **struct** RememberedSet { 
+4.  address* data[MAX_REMEMBEREDSET_SIZE]; 
+5. }; 
+
+
+不然的话不用数组而用例如基于红黑树的集合也成⋯
+
+C++代码 [![收藏代码](https://hllvm-group.iteye.com/images/icon_star.png)](javascript:void())
+
+1. **struct** RememberedSet { 
+2.  std::set<Object*> data; 
+3. }; 
+
+
+⋯嗯很少真的这么做的。
+
+Card Table：使用字节数组来实现card的记录，每个card对应该数组里的一个bit或一个byte，例如
+
+C代码 [![收藏代码](https://hllvm-group.iteye.com/images/icon_star.png)](javascript:void())
+
+1. **struct** CardTable { 
+2.  byte table[MAX_CARDTABLE_SIZE]; 
+3. }; 
+
+
+
+实际上card table也是remembered set的一种特殊实现。只是大家平时说的时候总觉得好像remembered set就该有对象指针的数组⋯那是不必要的假设。
+
+3、write-barrier的实现方式
+
+一般的隐含假设：
+Remembered Set：write-barrier是有条件的
+Card Table：write-barrier是无条件的（也称blind card-marking）
+
+其实remembered set也可以做称无条件的，而card marking也可以做成有条件的。这个都可选择。
+
+==================================
+
+还有一个与remembered set相关的概念，叫做store buffer。由于其实现方式也被称为“sequential store buffer”。
+有些资料会把store buffer也看作remembered set的一种实现，但我喜欢把前者看作与后者相关/近似的概念，而不是“实现方式”。
+
+例如最老的V8使用per-page remembered set，而比较新的版本使用store buffer。
+（使用remembered set的V8，以最早的[V8 0.1](https://github.com/v8/v8/blob/0.1/src/spaces.h#L88)为例，每个“Page”有8KB，其中开头有248字节用于remembered set（RSet）。RSet里每个bit对应该Page里的一个word，所以这是word精度的。
+
+而使用store buffer的V8也是word精度的。）
+
+两者的相似之处在于它们都记录跨区域的指针。
+而最重要的区别是：remembered set是一个集合（set），所以不包含重复；store buffer则通常允许包含重复。
+
+Store buffer的write-barrier比要去重复的remembered set的writer-barrier要简单和高效，但由于其允许重复，前者在部分收集（例如young GC）时的开销会比后者大。
+
+一个折衷的办法是在mutator的write-barrier还是允许重复，然后周期性增量式或在另一个线程并发的对store buffer去重。这样到实际执行部分收集时重复条目的数量可以大幅减少，提高GC的效率。V8的store buffer就是这样做的。
+
+这种还需要对数据做后续处理的write-barrier也叫做logging write-barrier。
+
+==================================
+
+这组演示稿讲解分代式GC中各种概念的关系讲得不错，可以参考：
+https://www.ps.uni-saarland.de/courses/gc-ws01/slides/generational_gc.pdf
+
+Steve Blacburn的barrier论文也有些内容与我上面的描述相应：
+[Barriers: friend or foe?](http://users.cecs.anu.edu.au/~steveb/downloads/pdf/wb-ismm-2004.pdf)
+
+
+
+
+
+参考链接：https://hllvm-group.iteye.com/group/topic/44381
+
+***
+
+
+
+一个卡页的内存中通常包含不止一个对象，只要卡页内有一个（或更多）对象的字段存在着跨代指针，那就将对应卡表的数组元素的值标识为1，成这个元素变脏（Dirty），没有则标识为0。
+
+![卡表.png](https://imgconvert.csdnimg.cn/aHR0cHM6Ly91cGxvYWQtaW1hZ2VzLmppYW5zaHUuaW8vdXBsb2FkX2ltYWdlcy8yMTcyMDU2OS1mYWIyMzE1MDEyZDg2NDdkLnBuZw?x-oss-process=image/format,png)
+
+《深入理解Java虚拟机》
+
+***
+
+- 2021.3.22     **动态绑定和多态**
+
+**什么是动态绑定，什么是多态？**
+
+发送给对象的请求与它相应的操作在运行时刻的连接就称之为动态绑定(dynamic binding)
+
+动态绑定允许在运行时刻彼此替换有相同类型(接口)的对象，这种可替换性就称为多态(polymorphism)
+
+***
